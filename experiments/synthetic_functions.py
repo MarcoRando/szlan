@@ -1,4 +1,6 @@
 import numpy as np 
+
+
 from math import sqrt
 
 class TargetFunction:
@@ -45,7 +47,7 @@ class LeastSquares(TargetFunction):
 class RosenbrockFunction(TargetFunction):
     def __init__(self, d, seed=121314):
         super().__init__("Rosenbrock", d,  seed)
-        self.bounds = np.array([[-5.0, 10.0] for _ in range(d)]).reshape(1, -1)
+        self.bounds = np.array([[-2.048, 2.048] for _ in range(d)]).reshape(1, -1)
         self.min_f = 0.0
         self.x0 = np.full((1, self.d), 0.5)
         self.x_star = np.ones((1, self.d))

@@ -7,7 +7,7 @@ import sys
 sys.path.append("..")
 sys.path.append("../../")
 from szlan.optimizer.szlan import SZLan, SZLanPhase
-from szlan.direction_generators.direction_generators import CoordinateDirectionGenerator, GaussianDirectionGenerator, QRDirectionGenerator
+from szlan.direction_generators.direction_generators import GaussianDirectionGenerator, SphericalDirectionGenerator, QRDirectionGenerator
 
 from synthetic_functions import *
 from utils import get_objective_function
@@ -19,24 +19,34 @@ import multiprocessing as mp
 
 
 
+
 def run_optimizer(params, target, budget, d, h, seed):
-    l, gamma, beta = params
-    population = target.x0 #np.array([ np.full((d,)) for _ in range(1)]).reshape(-1, d)
-    direction_generator = QRDirectionGenerator(d=d, l=l, seed=seed)
-    opt = SZLan(population=population, gamma=gamma, beta=beta , h=h, direction_generator=direction_generator, seed=seed)
+    l, gamma, beta, rep = params
+
+    direction_seed = seed + 134 * rep
+    opt_seed = seed + 473 * rep
+
+    rnd_state = np.random.RandomState(seed + 961 * rep)
+    population = (target.bounds[:, 1] - target.bounds[:, 0]) * rnd_state.rand(1, d) + target.bounds[:, 0] #target.x0 #np.array([ np.full((d,)) for _ in range(1)]).reshape(-1, d)
+    direction_generator = QRDirectionGenerator(d=d, l=l, seed=direction_seed)
+    opt = SZLan(population=population, gamma=gamma, beta=beta , h=h, direction_generator=direction_generator, seed=opt_seed)
 
     print("------------")
     print(f"Running SZLan with parameters: l={l}, gamma={gamma}, beta={beta}, h={h}")
+    print(population)
     print("------------")
 
     num_evals = 0
 
     best_on_iterate = None
     fvalues = []
+
     while num_evals < budget:
         X = opt.ask()
         Y = target(X)
-        if opt.phase == SZLanPhase.INITIALIZATION or opt.phase == SZLanPhase.INITIALIZATION:
+#        if np.any(np.isnan(Y)):
+#            break
+        if opt.phase == SZLanPhase.INITIALIZATION or opt.phase == SZLanPhase.ITERATE:
             fvalues.append(Y[0])
         if opt.phase == SZLanPhase.ITERATE and (best_on_iterate is None or Y < best_on_iterate):
             best_on_iterate = Y[0]       
@@ -45,7 +55,7 @@ def run_optimizer(params, target, budget, d, h, seed):
 
         num_evals += X.shape[0]
 
-    return opt.best[1], best_on_iterate, fvalues
+    return opt.best[1], best_on_iterate, fvalues, params
 
 
 
@@ -57,14 +67,14 @@ def run_experiment(args):
     budget = args.budget
     seed = args.seed
     num_workers = args.num_workers
-    
+    reps = args.reps
     output_directory = f"{args.out_dir}/szlan_results/changing_parameters/{target_name}"
     os.makedirs(output_directory, exist_ok=True)
 
-    num_directions = [2 ]#, d//3, d//2, int(4/5 * d), d]
-    gammas = np.logspace(-4, 0, 1)
-    betas = np.logspace(-4, 0, 1)
-    param_grid = list(product(num_directions, gammas, betas))
+    num_directions = [2, d//3, d//2 ]#, d//2, int(4/5 * d), d]
+    gammas = np.logspace(-5, 0, 1)
+    betas = np.logspace(-5, 0, 1)
+    param_grid = list(product(num_directions, gammas, betas, range(reps)))
 
 #    print(param_grid)
 #    exit()
@@ -74,8 +84,15 @@ def run_experiment(args):
 
     run_opt = partial(run_optimizer, target=target, budget=budget, d=d, h=h, seed=seed)
     with mp.Pool(processes=num_workers) as pool:
-        for result in pool.map( run_opt, param_grid):
-            print("RESULT: ",result)
+        for result in pool.imap_unordered( run_opt, param_grid):
+            f_found, f_found_on_iterate, fvalues, params = result
+            l, gamma, beta, rep = params
+
+            with open(f"{output_directory}/{target_name}_{d}.txt", "a") as f:
+                f.write(f"{l},{rep},{gamma},{beta},{f_found},{f_found_on_iterate},{fvalues[0]},{min_f}\n")
+                f.flush()
+#            print("RESULT: ",result)
+
     #     for (i, resul) in pool.
 
 #    print(f"Running experiment on {target_name} function in dimension {d} with budget {budget} and seed {seed}")
