@@ -23,13 +23,13 @@ population = np.array([
 
 h = 1e-5
 d,l =2, 2
-direction_generator = CoordinateDirectionGenerator(d=d, l=l)
+direction_generator = QRDirectionGenerator(d=d, l=l)
 
 opt = SZLan(population=population,
             direction_generator=direction_generator,
             h=1e-10,
-            gamma=0.1,
-            beta=1.0,
+            gamma=0.001,
+            beta=0.0,
             seed=121314)
 
 

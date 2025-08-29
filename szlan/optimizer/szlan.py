@@ -70,7 +70,7 @@ class SZLan(Optimizer):
         gamma_k = self.gamma(self.k)
         beta_k = self.beta(self.k)
         
-        self.population = self.population - gamma_k * g_k + np.sqrt(2 * gamma_k / beta_k) * z_k
+        self.population = self.population - gamma_k * g_k + np.sqrt(2 *  beta_k) * z_k
         return self.population
     
     def tell(self, X, y):
