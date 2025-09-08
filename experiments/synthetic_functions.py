@@ -83,6 +83,7 @@ class GriewankFunction(TargetFunction):
         self.bounds = np.array([[-600.0, 600.0] for _ in range(d)])
         self.min_f = 0.0
         self.x0 = np.full((1, self.d), 1.0)
+        self.x_star = np.zeros((1, self.d))
 
     def __call__(self, x):
         d = x.shape[-1]
@@ -113,9 +114,10 @@ class TridFunction(TargetFunction):
 class AckleyFunction(TargetFunction):
     def __init__(self, d, seed=121314):
         super().__init__("Ackley", d, seed)
-        self.bounds = np.array([[-32.0, 32.0] for _ in range(d)])
+        self.bounds = np.array([[-10.0, 10.0] for _ in range(d)])
         self.min_f = 0.0
         self.x0 = np.ones((1, self.d))
+        self.x_star = np.zeros((1, self.d))
             
     def __call__(self, x):
         d = x.shape[1]
@@ -133,6 +135,7 @@ class StyblinksiTangFunction(TargetFunction):
         self.bounds = np.array([[-5.0, 5.0] for _ in range(d)])
         self.min_f = -39.16599 * d 
         self.x0 = np.ones((1, self.d))
+        self.x_star = np.full((1, self.d), -2.903534)
             
     def __call__(self, x):
         return np.sum(x ** 4 - 16 * x ** 2 + 5 * x, axis=1) / 2
@@ -148,6 +151,34 @@ class SchwefelFunction(TargetFunction):
     def __call__(self, x):
         return 418.9829 * self.d - np.sum(x * np.sin(np.sqrt(np.abs(x))), axis=1)
 
+class LevyFunction(TargetFunction):
+    def __init__(self, d, seed=121314):
+        super().__init__("Levy", d, seed)
+        self.bounds = np.array([[-10.0, 10.0] for _ in range(d)])
+        self.min_f = 0.0 
+        self.x0 = np.zeros((1, self.d))
+        self.x_star = np.ones((1, self.d))
+
+    def __call__(self, x):
+
+        w = 1.0 + (x - 1.0) / 4.0
+
+        # Term 1: sin^2(pi * w1)
+        term1 = np.sin(np.pi * w[:, 0]) ** 2
+
+        # Middle sum over i = 1..d-1 (handle d=1 gracefully)
+        if w.shape[1] > 1:
+            wi = w[:, :-1]
+            mid = (wi - 1.0) ** 2 * (1.0 + 10.0 * np.sin(np.pi * wi + 1.0) ** 2)
+            term_mid = np.sum(mid, axis=1)
+        else:
+            term_mid = np.zeros(w.shape[0])
+
+        # Last term uses w_d
+        wd = w[:, -1]
+        term_last = (wd - 1.0) ** 2 * (1.0 + np.sin(2.0 * np.pi * wd) ** 2)
+
+        return term1 + term_mid + term_last
 
 class BukinFunction(TargetFunction):
     def __init__(self, seed=121314):
