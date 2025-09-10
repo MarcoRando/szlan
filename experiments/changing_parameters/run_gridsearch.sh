@@ -13,7 +13,7 @@ num_workers=$2
 reps=$3
 
 fun_names=('Ackley' 'Levy' 'StyblinkskiTang' 'Griewank' 'Rosenbrock')
-dimensions=(50) #(5 10 25 50)
+dimensions=(5 10 25 50)
 
 for fun_name in "${fun_names[@]}"; do
     for d in "${dimensions[@]}"; do
