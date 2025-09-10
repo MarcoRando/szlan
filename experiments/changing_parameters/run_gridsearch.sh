@@ -1,18 +1,24 @@
+#!/bin/bash
+
+budget=100000000
+seed=123456
+
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <output path> <num workers> <repetitions>"
+    exit 1
+fi
 
 
+num_workers=$2
+reps=$3
 
-nohup python3 grid_search.py Ackley --d 5  --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Ackley --d 10 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Ackley --d 25 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Levy --d 5  --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Levy --d 10 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Levy --d 25 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py StyblinkskiTang --d 5  --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py StyblinkskiTang --d 10 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py StyblinkskiTang --d 25 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Griewank --d 5  --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Griewank --d 10 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Griewank --d 25 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Rosenbrock --d 5  --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Rosenbrock --d 10 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
-nohup python3 grid_search.py Rosenbrock --d 25 --budget 100000000 --reps 10 --num-workers 50 --out-dir /data/mrando/ --seed 123456 ;
+fun_names=('Ackley' 'Levy' 'StyblinkskiTang' 'Griewank' 'Rosenbrock')
+dimensions=(5 10 25 50)
+
+for fun_name in "${fun_names[@]}"; do
+    for d in "${dimensions[@]}"; do
+        echo "[>>] Running grid search for $fun_name [d = $d]..."
+        nohup python3 grid_search.py $fun_name --d $d  --budget $budget --reps $reps --num-workers $num_workers --out-dir $1 --seed $seed 
+        wait
+    done
+done
