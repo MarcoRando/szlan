@@ -8,7 +8,7 @@ if [ "$#" -ne 3 ]; then
     exit 1
 fi
 
-
+out_dir=$1
 num_workers=$2
 reps=$3
 
@@ -18,6 +18,6 @@ dimensions=(5 10 25 50)
 for fun_name in "${fun_names[@]}"; do
     for d in "${dimensions[@]}"; do
         echo "[>>] Running grid search for $fun_name [d = $d]..."
-        python3 grid_search.py $fun_name --d $d  --budget $budget --reps $reps --num-workers $num_workers --out-dir $1 --seed $seed 
+        python3 grid_search.py $fun_name --d $d  --budget $budget --reps $reps --num-workers $num_workers --out-dir $out_dir --seed $seed 
     done
 done
