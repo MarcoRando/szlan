@@ -106,7 +106,7 @@ def run_experiment(args):
                 f.flush()
             with open(f"{output_directory}/traces/{target_name}_{d}_{l}_{gamma}_{beta}_{n}_{rep}_trace.txt", "a") as f:
                 for i in range(len(fvalues)):
-                    f.write(f"{fvalues[i]}\n")
+                    f.write(f"{fvalues[i]},{fvalues[0]},{min_f}\n")
                     f.flush()
 
     

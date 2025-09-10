@@ -15,19 +15,25 @@ output_dir = sys.argv[2]
 target_fun = sys.argv[3]
 d = int(sys.argv[4])    
 num_reps = int(sys.argv[5])
+n = int(sys.argv[6])
 
 
-os.makedirs(output_dir + f"/{target_fun}", exist_ok=True)
+os.makedirs(output_dir + f"/{target_fun}/{d}", exist_ok=True)
 
 reps = range(num_reps)
-gammas =  [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0, 100.0]
-betas = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 1e1, 1e2, 1e3, 1e4, 1e5]
-num_directions = [2, d//3, d//2, int(4/5 * d), d]
+if d >= 10:
+    num_directions = [2, d//3, d//2, int(4/5 * d), d]
+elif d > 5:
+    num_directions = [2, d//2, d]
+else:
+    num_directions = [d//2, d]
+gammas =  [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0, 100.0] #np.logspace(-7, 0, 5)
+betas =[1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 1e1, 1e2, 1e3, 1e4, 1e5]
 
 def read_results(fun_name, d, l, gamma, beta):
 
     normalized_optimality_gap = []
-    with open(f"{results_dir}/szlan_results/changing_parameters/{fun_name}/{fun_name}_{d}_{l}_{gamma}_{beta}.txt", "r") as f:
+    with open(f"{results_dir}/szlan_results/changing_parameters/{fun_name}/{fun_name}_{d}_{l}_{gamma}_{beta}_{n}.txt", "r") as f:
         #                f.write(f"{rep},{f_found},{f_found_on_iterate},{fvalues[0]},{min_f}\n")
         for line in f.readlines():
             splitted = line.split(",")
@@ -39,12 +45,19 @@ def read_results(fun_name, d, l, gamma, beta):
 
 
 results_map = np.ones((len(num_directions), len(gammas), len(betas)))
-
+best_for_l = []
 for i, l in enumerate(num_directions):
+
+    l_values = []
+    best_mean_ = None
     for j, gamma in enumerate(gammas):
         for k, beta in enumerate(betas):
-            results_map[i, j, k] = np.mean(read_results(target_fun, d, l, gamma, beta))
-
+            results_l_gamma_beta = read_results(target_fun, d, l, gamma, beta)
+            results_map[i, j, k] = np.mean(results_l_gamma_beta)
+            if best_mean_ is None or results_map[i, j, k] < best_mean_:
+                best_mean_ = results_map[i, j, k]
+                l_values = results_l_gamma_beta
+    best_for_l.append(l_values)
     fig, ax = plt.subplots(1, 1)
     ax.set_title(f"{target_fun} [$d = {d}, \\ell={l}$]")
     im = ax.imshow(results_map[i].T, cmap='viridis', interpolation='bilinear', origin='lower') #, vmin=0.0, vmax=1.0)
@@ -59,10 +72,15 @@ for i, l in enumerate(num_directions):
 
     ax.set_xlabel("$\\gamma$")
     ax.set_ylabel("$\\beta$")
-    fig.savefig(f"{output_dir}/{target_fun}/results_map_{d}_{l}.pdf", bbox_inches='tight')
+    fig.savefig(f"{output_dir}/{target_fun}/{d}/results_map_{d}_{l}.pdf", bbox_inches='tight')
     plt.close(fig)
 
+fig, ax = plt.subplots(1, 1)
 
+ax.boxplot(best_for_l, positions=np.arange(len(num_directions)), tick_labels=num_directions, widths=0.5)
+
+fig.savefig(f"{output_dir}/{target_fun}/{d}/l_comparison.pdf", bbox_inches='tight')
+plt.close(fig)
 
 
 for l in num_directions:
@@ -78,12 +96,12 @@ for l in num_directions:
         ax.plot(gammas, mu_ris, '-o', label=f"beta={betas[i]}", rasterized=True)
         ax.fill_between(gammas, mu_ris - sigma_ris, mu_ris + sigma_ris, alpha=0.2, rasterized=True)
 
-    ax.set_xlabel("gamma")
-    ax.set_ylabel("normalized optimality gap")
+    ax.set_xlabel("$\\gamma$")
+    ax.set_ylabel("$\\frac{\\min_{i,k} F(x_k^i) - \\min F}{\\min_{i} F(x_0^i) - \\min F}$")
     ax.set_yscale("log")
     ax.set_xscale("log")
     ax.legend()
-    fig.savefig(f"{output_dir}/{target_fun}/normalized_optimality_gap_{d}_{l}_changing_beta.pdf", bbox_inches='tight')
+    fig.savefig(f"{output_dir}/{target_fun}/{d}/normalized_optimality_gap_{d}_{l}_changing_beta.pdf", bbox_inches='tight')
     plt.close(fig)
 
 
@@ -100,10 +118,10 @@ for beta in betas:
         ax.plot(gammas, mu_ris, '-o', label=f"$\\ell=$ {num_directions[i]}", rasterized=True)
         ax.fill_between(gammas, mu_ris - sigma_ris, mu_ris + sigma_ris, alpha=0.2, rasterized=True)
 
-    ax.set_xlabel("gamma")
-    ax.set_ylabel("normalized optimality gap")
+    ax.set_xlabel("$\\gamma$")
+    ax.set_ylabel("$\\frac{\\min_{i,k} F(x_k^i) - \\min F}{\\min_{i} F(x_0^i) - \\min F}$")
     ax.set_yscale("log")
     ax.set_xscale("log")
     ax.legend()
-    fig.savefig(f"{output_dir}/{target_fun}/normalized_optimality_gap_{d}_{beta}_changing_l.pdf", bbox_inches='tight')
+    fig.savefig(f"{output_dir}/{target_fun}/{d}/normalized_optimality_gap_{d}_{beta}_changing_l.pdf", bbox_inches='tight')
     plt.close(fig)

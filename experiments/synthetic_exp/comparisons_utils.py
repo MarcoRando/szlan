@@ -1,6 +1,26 @@
 import numpy as np 
+import nevergrad as ng
 
 from itertools import product
+
+
+
+def get_optimizer(optimizer_name, params, population, d, h, seed):
+    if optimizer_name == "szlan":
+        l, gamma, beta, _, rep = params
+        direction_seed = seed + 134 * rep
+        opt_seed = seed + 473 * rep
+
+        direction_generator = QRDirectionGenerator(d=d, l=l, seed=direction_seed)
+        return SZLan(population=population, gamma=gamma, beta=beta , h=h, direction_generator=direction_generator, seed=opt_seed)
+    elif optimizer_name == "cmaes":
+        return ng.optimizers.ParametrizedCMA(popsize=params[1], scale=params[0])
+    elif optimizer_name == "de_2p":
+        return ng.optimizers.DifferentialEvolution(popsize=params[-2], scale=params[0], F1=params[1], F2=params[2], crossover='twopoints') #(parametrization=d, budget=budget)
+    elif optimizer_name == "pso":
+        return ng.optimizers.ConfPSO(popsize=params[-2], omega=params[0], phip=params[1], phig=params[2])
+    raise Exception(f"Unknown optimizer {optimizer_name}")
+
 
 
 def get_params_grid(optimizer_name, d, reps = 10):

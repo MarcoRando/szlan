@@ -25,7 +25,7 @@ def run_experiment(target, opt, population, T, best_init, alg_cost, verbose=Fals
 
     while i < T:
         candidate = opt.ask()
-        value = target(candidate.value.reshape(1, -1)) if not isinstance(candidate, np.ndarray) else target(candidate.reshape(-1, d))
+        value = target(candidate.value.reshape(-1, d)) if not isinstance(candidate, np.ndarray) else target(candidate.reshape(-1, d))
         # if verbose:
         #     if opt.phase == SZLanPhase.ITERATE:
         #         print(f"[--] Current value: {value} [{value.shape}]")
@@ -33,9 +33,12 @@ def run_experiment(target, opt, population, T, best_init, alg_cost, verbose=Fals
         opt.tell(candidate, value)
 
         f_best = target(opt.recommend().value.reshape(1, -1)) if not isinstance(opt, SZLan) else target(opt.recommend()[0].reshape(1, -1))
+
         regret = (f_best[0] - target.min_f) / (best_init - target.min_f)
         cost = 1 if not isinstance(opt, SZLan) else  candidate.shape[0]
         opt_values += [regret for _ in range(cost)]
+        print(opt_values)
+#        exit()
         i= i + 1 if not isinstance(opt, SZLan) else i + candidate.shape[0]
         if verbose:
             print(f"[--] Best value observed: {f_best} [{target.min_f}]")
@@ -45,7 +48,7 @@ def run_experiment(target, opt, population, T, best_init, alg_cost, verbose=Fals
 
 d = 5 #25
 l = d
-n = 10#0
+n = 100
 #np.array([
 #     [2.0 for _ in range(d)],
 #     [3.0 for _ in range(d)],
@@ -66,12 +69,12 @@ direction_generator = QRDirectionGenerator(d=d, l=l)
 
 
 np.random.seed(12314)
-T = 20000
+T = 1000 #20000
 
-optim = ng.optimizers.DifferentialEvolution(popsize=n, crossover='random')(parametrization=d, budget=T)
-optim_twopoint = ng.optimizers.DifferentialEvolution(popsize=n, crossover='twopoints')(parametrization=d, budget=T)
-optim_cmaes = ng.optimizers.ParametrizedCMA(popsize=n, scale=0.2).set_name("CMA-ES", register=True)(parametrization=d, budget=T)
-optim_pso = ng.optimizers.ConfPSO(popsize=n)(parametrization=d, budget=T)
+
+optim_twopoint = ng.optimizers.DifferentialEvolution(popsize=n, F1=0.5, F2=0.5, crossover='twopoints')(parametrization=d, budget=T)
+optim_cmaes = ng.optimizers.ParametrizedCMA(popsize=n, scale=0.9).set_name("CMA-ES", register=True)(parametrization=d, budget=T)
+optim_pso = ng.optimizers.ConfPSO(popsize=n, omega=0.1, phip=0.1, phig=0.1)(parametrization=d, budget=T)
 #optim_gpucb = ng.optimizers.ParametrizedBO()(parametrization=d, budget=T)
 
 
@@ -79,19 +82,18 @@ optim_pso = ng.optimizers.ConfPSO(popsize=n)(parametrization=d, budget=T)
 
 
 for vec in population:
-    cand = optim.parametrization.spawn_child(new_value=vec)
-    optim.tell(cand, target(vec.reshape(1, -1)))
-    optim_twopoint.tell(cand, target(vec.reshape(1, -1)))
-    optim_cmaes.tell(cand, target(vec.reshape(1, -1)))
-    optim_pso.tell(cand, target(vec.reshape(1, -1)))
-#    optim_gpucb.tell(cand, target(vec.reshape(1, -1)))
-#    optim_ngopt.tell(cand, target(vec.reshape(1, -1)))
+    cand_twopoint = optim_twopoint.parametrization.spawn_child(new_value=vec)
+    cand_cmaes = optim_cmaes.parametrization.spawn_child(new_value=vec)
+    cand_pso = optim_pso.parametrization.spawn_child(new_value=vec)
+    optim_twopoint.tell(cand_twopoint, target(vec.reshape(1, -1)))
+    optim_cmaes.tell(cand_cmaes, target(vec.reshape(1, -1)))
+    optim_pso.tell(cand_pso, target(vec.reshape(1, -1)))
 
 
 beta = 1.0 #7.0 
 gamma = 0.1
 
-sz_lan = SZLan(population=population[:1, :].reshape(-1, d),
+sz_lan = SZLan(population=population, #[:1, :].reshape(-1, d),
             direction_generator=direction_generator,
             h=h,
             gamma=lambda k : gamma,
@@ -100,15 +102,12 @@ sz_lan = SZLan(population=population[:1, :].reshape(-1, d),
 
 
 
-opt_values_szlan = run_experiment(target, sz_lan, population, T, best_init, alg_cost=l, verbose=True)
+opt_values_cmaes = run_experiment(target, optim_cmaes, population, T - n, best_init, alg_cost=1, verbose=True)
+# opt_values_szlan = run_experiment(target, sz_lan, population, T, best_init, alg_cost=l, verbose=True)
 
-#opt_values_de_rand = run_experiment(target, optim, population, T - n, best_init, alg_cost=1, verbose=False)
-#opt_values_de_twopoint = run_experiment(target, optim_twopoint, population, T - n, best_init, alg_cost=1, verbose=False)
-#opt_values_cmaes = run_experiment(target, optim_cmaes, population, T - n, best_init, alg_cost=1, verbose=False)
-#opt_values_pso = run_experiment(target, optim_pso, population, T - n, best_init, alg_cost=1, verbose=False)
-#opt_values_gpucb = run_experiment(target, optim_gpucb, population, T - n, best_init, alg_cost=1, verbose=False)
-#opt_values_ngopt = run_experiment(target, optim_ngopt, population, T, best_init, alg_cost=1, verbose=True)
-#opt_values_ozd = run_experiment(target, ozd, population, T, best_init, alg_cost=l, verbose=True)
+# opt_values_de_twopoint = run_experiment(target, optim_twopoint, population, T - n, best_init, alg_cost=1, verbose=False)
+# opt_values_pso = run_experiment(target, optim_pso, population, T - n, best_init, alg_cost=1, verbose=False)
+
 
 
 fig, ax = plt.subplots(1, 1)
@@ -116,14 +115,14 @@ ax.set_title(f"{target.name} [$d$ = {d}]")
 
 
 
-ax.plot(range(len(opt_values_de_rand)), opt_values_de_rand, label="DE [Rand]")
-ax.plot(range(len(opt_values_de_twopoint)), opt_values_de_twopoint, label="DE [2Points]")
+#ax.plot(range(len(opt_values_de_rand)), opt_values_de_rand, label="DE [Rand]")
+#ax.plot(range(len(opt_values_de_twopoint)), opt_values_de_twopoint, label="DE [2Points]")
 ax.plot(range(len(opt_values_cmaes)), opt_values_cmaes, label="CMA-ES")
-ax.plot(range(len(opt_values_pso)), opt_values_pso, label="PSO")
+#ax.plot(range(len(opt_values_pso)), opt_values_pso, label="PSO")
 
 #ax.plot(range(len(opt_values_ngopt)), opt_values_ngopt, label=f"NGOPT")
 #ax.plot(range(len(opt_values_ozd)), opt_values_ozd, label=f"OZD")
-ax.plot(range(len(opt_values_szlan)), opt_values_szlan, label="SZLAN [$\\beta_k = 10.0$]")
+#ax.plot(range(len(opt_values_szlan)), opt_values_szlan, label="SZLAN [$\\beta_k = 10.0$]")
 
 ax.set_ylabel("normalized simple regret")
 ax.set_xlabel("function evaluations")
