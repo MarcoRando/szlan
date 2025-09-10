@@ -13,12 +13,11 @@ num_workers=$2
 reps=$3
 
 fun_names=('Ackley' 'Levy' 'StyblinkskiTang' 'Griewank' 'Rosenbrock')
-dimensions=(5 10 25 50)
+dimensions=(50) #(5 10 25 50)
 
 for fun_name in "${fun_names[@]}"; do
     for d in "${dimensions[@]}"; do
         echo "[>>] Running grid search for $fun_name [d = $d]..."
-        nohup python3 grid_search.py $fun_name --d $d  --budget $budget --reps $reps --num-workers $num_workers --out-dir $1 --seed $seed 
-        wait
+        python3 grid_search.py $fun_name --d $d  --budget $budget --reps $reps --num-workers $num_workers --out-dir $1 --seed $seed 
     done
 done
