@@ -78,7 +78,7 @@ def run_experiment(args):
     else:
         num_directions = [d//2, d]
     gammas =  [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0, 100.0] #np.logspace(-7, 0, 5)
-    betas =[1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 1e1, 1e2, 1e3, 1e4, 1e5] # np.logspace(-7, 0, 8) #np.logspace(-5, 0, 5)
+    betas =[1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 1e1, 1e2, 1e3, 1e4, 1e5] + np.linspace(0.01, 10.0, 10).tolist() # np.logspace(-7, 0, 8) #np.logspace(-5, 0, 5)
     num_particles = [100] #[1, 10, 100, 1000]
     param_grid = list(product(num_directions, gammas, betas, num_particles, range(reps)))
 

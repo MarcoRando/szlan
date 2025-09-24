@@ -5,10 +5,14 @@ from math import sqrt
 
 class TargetFunction:
     
-    def __init__(self, name, d, seed=131415) -> None:
+    def __init__(self, name, d,  regularization = 0.0, seed=131415) -> None:
         self.name = name
         self.d = d
         self.rnd_state = np.random.RandomState(seed)
+        self.regularization = regularization
+
+    def _add_regularization(self, fx, x):
+        return fx + self.regularization * np.linalg.norm(x, axis=1)**2
         
     def __call__(self, x):
         pass
@@ -21,9 +25,9 @@ class TargetFunction:
 
 class LeastSquares(TargetFunction):
     
-    def __init__(self, d, mu, L, seed = 1231415) -> None:
+    def __init__(self, d, mu, L, regularization = 0.0, seed = 1231415) -> None:
         assert mu < L
-        super().__init__(name="LeastSquares", d = d, seed=seed)
+        super().__init__(name="LeastSquares", d = d, regularization=regularization, seed=seed)
         self.mu = mu
         self.L = L
         self.bounds = np.array([[-1, 1] for _ in range(d)])
@@ -45,8 +49,8 @@ class LeastSquares(TargetFunction):
         return f"{self.name}_{self.L}_{self.mu}_{self.d}"
     
 class RosenbrockFunction(TargetFunction):
-    def __init__(self, d, seed=121314):
-        super().__init__("Rosenbrock", d,  seed)
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("Rosenbrock", d, regularization, seed)
         self.bounds = np.array([[-2.048, 2.048] for _ in range(d)]).reshape(1, -1)
         self.min_f = 0.0
         self.x0 = np.full((1, self.d), 0.5)
@@ -58,12 +62,12 @@ class RosenbrockFunction(TargetFunction):
         
         xi = x[:, :-1]
         xi1 = x[:, 1:]
-        return np.sum(100 * (xi1 - xi**2)**2 + (xi - 1)**2, axis=1).reshape(-1)
+        return self._add_regularization(np.sum(100 * (xi1 - xi**2)**2 + (xi - 1)**2, axis=1).reshape(-1), x)
 
 
 class QuingFunction(TargetFunction):
-    def __init__(self, d,  seed=121314):
-        super().__init__("Quing", d, seed)
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("Quing", d, regularization, seed)
         self.bounds = np.array([[-500.0, 500.0] for _ in range(d)])
         self.min_f = 0.0
         self.x0 = np.ones((1, self.d))
@@ -73,13 +77,13 @@ class QuingFunction(TargetFunction):
         d = x.shape[1]
         x = x if x.shape[0] > 1 else x.reshape((1, -1)) #unsqueeze(0)
         i = np.arange(1, d + 1).reshape((1, -1))#unsqueeze(0)  # shape (1, d)
-        return np.sum((x ** 2 - i) ** 2, axis=1).squeeze()
+        return self._add_regularization(np.sum((x ** 2 - i) ** 2, axis=1).squeeze(), x)
 
 
 
 class GriewankFunction(TargetFunction):
-    def __init__(self, d, seed=121314):
-        super().__init__("Griewank", d, seed)
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("Griewank", d, regularization, seed)
         self.bounds = np.array([[-600.0, 600.0] for _ in range(d)])
         self.min_f = 0.0
         self.x0 = np.full((1, self.d), 1.0)
@@ -90,14 +94,14 @@ class GriewankFunction(TargetFunction):
         indices = np.arange(1, d + 1)
         sum_sq = np.sum(x ** 2, axis=-1) / 4000
         prod_cos = np.prod(np.cos(x / np.sqrt(indices)), axis=-1)
-        return 1 + sum_sq - prod_cos
+        return self._add_regularization(1 + sum_sq - prod_cos, x)
 
 
 
 class TridFunction(TargetFunction):
 
-    def __init__(self, d, seed=121314):
-        super().__init__("Trid", d, seed)
+    def __init__(self, d, regularization=0.0, seed=121314):
+        super().__init__("Trid", d, regularization, seed)
         self.bounds = np.array([[-d**2, d**2] for _ in range(d)])
         self.min_f = - (d * (d + 4) * (d - 1)) / 6
         x0 = np.zeros((1, d))
@@ -108,13 +112,13 @@ class TridFunction(TargetFunction):
     def __call__(self, x):
         term1 = np.sum(np.square(x - 1), axis=1)#, keepdims=True) #.square().sum(dim=1, keepdim=True)  
         term2 = np.sum(x[:, 1:] * x[:, :-1], axis=1)#, keepdims=True)  
-        return term1 - term2  # Compute function
+        return self._add_regularization(term1 - term2, x)  # Compute function
 
 
 class AckleyFunction(TargetFunction):
-    def __init__(self, d, seed=121314):
-        super().__init__("Ackley", d, seed)
-        self.bounds = np.array([[-10.0, 10.0] for _ in range(d)])
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("Ackley", d, regularization, seed)
+        self.bounds = np.array([[-32.768, 32.768] for _ in range(d)])
         self.min_f = 0.0
         self.x0 = np.ones((1, self.d))
         self.x_star = np.zeros((1, self.d))
@@ -125,35 +129,49 @@ class AckleyFunction(TargetFunction):
         sum_cos = np.sum(np.cos(2 * np.pi * x), axis=1)
         term1 = -20 * np.exp(-0.2 * np.sqrt(sum_sq / d))
         term2 = -np.exp(sum_cos / d)
-        return term1 + term2 + 20 + np.e 
+        return self._add_regularization(term1 + term2 + 20 + np.e + np.linalg.norm(x, axis=1)**2, x)
 
 
 
 class StyblinksiTangFunction(TargetFunction):
-    def __init__(self, d, seed=121314):
-        super().__init__("StyblinksiTang", d, seed)
+    def __init__(self, d,regularization = 0.0, seed=121314):
+        super().__init__("StyblinksiTang", d,regularization, seed)
         self.bounds = np.array([[-5.0, 5.0] for _ in range(d)])
         self.min_f = -39.16599 * d 
         self.x0 = np.ones((1, self.d))
         self.x_star = np.full((1, self.d), -2.903534)
             
     def __call__(self, x):
-        return np.sum(x ** 4 - 16 * x ** 2 + 5 * x, axis=1) / 2
+        return self._add_regularization(np.sum(x ** 4 - 16 * x ** 2 + 5 * x, axis=1) / 2, x)
 
+
+class RastriginFunction(TargetFunction):
+
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("Rastrigin", d, regularization, seed)
+        self.bounds = np.array([[-5.12, 5.12] for _ in range(d)])
+        self.min_f = 0.0
+        self.x0 = np.ones((1, self.d))
+        self.x_star = np.zeros((1, self.d))
+
+
+    def __call__(self, x):
+
+        return self._add_regularization(10 * self.d + np.sum(x**2 - 10 * np.cos(2 * np.pi * x), axis=1), x)
 
 class SchwefelFunction(TargetFunction):
-    def __init__(self, d, seed=121314):
-        super().__init__("Schwefel", d, seed)
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("Schwefel", d, regularization,seed)
         self.bounds = np.array([[-500.0, 500.0] for _ in range(d)])
         self.min_f = 0.0 
         self.x0 = np.ones((1, self.d))
             
     def __call__(self, x):
-        return 418.9829 * self.d - np.sum(x * np.sin(np.sqrt(np.abs(x))), axis=1)
+        return self._add_regularization(418.9829 * self.d - np.sum(x * np.sin(np.sqrt(np.abs(x))), axis=1), x)
 
 class LevyFunction(TargetFunction):
-    def __init__(self, d, seed=121314):
-        super().__init__("Levy", d, seed)
+    def __init__(self, d, regularization = 0.0,seed=121314):
+        super().__init__("Levy", d, regularization,seed)
         self.bounds = np.array([[-10.0, 10.0] for _ in range(d)])
         self.min_f = 0.0 
         self.x0 = np.zeros((1, self.d))
@@ -178,11 +196,11 @@ class LevyFunction(TargetFunction):
         wd = w[:, -1]
         term_last = (wd - 1.0) ** 2 * (1.0 + np.sin(2.0 * np.pi * wd) ** 2)
 
-        return term1 + term_mid + term_last
-
+        return self._add_regularization(term1 + term_mid + term_last, x)  #+ 10 * np.square(np.linalg.norm(x, axis=1))
+        
 class BukinFunction(TargetFunction):
-    def __init__(self, seed=121314):
-        super().__init__("Bukin", 2, seed)
+    def __init__(self, regularization = 0.0, seed=121314):
+        super().__init__("Bukin", 2, regularization=regularization, seed=seed)
         self.bounds = np.array([[-15.0, -5.0], [-3.0, 3.0]])
         self.min_f = 0.0 
         self.x0 = np.array([[-10.0, 1.0]])
@@ -192,7 +210,7 @@ class BukinFunction(TargetFunction):
         x2 = x[:, 1]
         term1 = 100 * np.sqrt(np.abs(x2 - 0.01 * x1 ** 2))
         term2 = 0.01 * np.abs(x1 + 10)
-        return term1 + term2
+        return self._add_regularization(term1 + term2, x)
 
 # class PycutestTarget(TargetFunction):
     
