@@ -64,6 +64,18 @@ class RosenbrockFunction(TargetFunction):
         xi1 = x[:, 1:]
         return self._add_regularization(np.sum(100 * (xi1 - xi**2)**2 + (xi - 1)**2, axis=1).reshape(-1), x)
 
+    def grad(self, x):
+        x = x if x.ndim > 1 else x.unsqueeze(0) 
+        batch_size, d = x.shape
+        grad = np.zeros_like(x)
+
+        xi = x[:, :-1]
+        xi1 = x[:, 1:]
+        grad[:, :-1] += -400 * xi * (xi1 - xi**2) - 2 * (1 - xi)
+        grad[:, 1:] += 200 * (xi1 - xi**2)
+
+        return grad#.squeeze()
+
 
 class QuingFunction(TargetFunction):
     def __init__(self, d, regularization = 0.0, seed=121314):
@@ -71,6 +83,7 @@ class QuingFunction(TargetFunction):
         self.bounds = np.array([[-500.0, 500.0] for _ in range(d)])
         self.min_f = 0.0
         self.x0 = np.ones((1, self.d))
+        self.x_star = np.array([np.sqrt(i) for i in range(1, d + 1)]).reshape(1, -1)
             
 
     def __call__(self, x):

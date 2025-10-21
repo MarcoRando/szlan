@@ -12,7 +12,7 @@ from szlan.direction_generators.direction_generators import GaussianDirectionGen
 from synthetic_functions import *
 from utils import get_objective_function
 
-from comparisons_utils import get_optimizer, get_params_grid
+from comparisons_utils import run_optimizer,get_optimizer, get_params_grid
 
 import nevergrad as ng
 
@@ -25,77 +25,59 @@ import multiprocessing as mp
 
 
 
-def run_optimizer(params, optimizer_name, target, budget, d, h, seed):
-#    l, gamma, beta, n, rep = params
-    rep = params[-1]
-    n = params[-2]
-    budget = budget #* n
+# def run_optimizer(params, optimizer_name, target, budget, d, h, n, seed):
+# #    l, gamma, beta, n, rep = params
 
-    direction_seed = seed + 134 * rep
-    opt_seed = seed + 473 * rep
+#     rep = params[-1]
 
-
-    rnd_state = np.random.RandomState(seed+ 961 * rep)
-    population = (target.bounds[:, 1] - target.bounds[:, 0]) * rnd_state.rand(n, d) + target.bounds[:, 0] #target.x0 #np.array([ np.full((d,)) for _ in range(1)]).reshape(-1, d)
+#     direction_seed = seed + 134 * rep
+#     opt_seed = seed + 473 * rep
 
 
-    np.random.seed(opt_seed)
-    opt = get_optimizer(optimizer_name, params, population, d, h, seed)
+#     rnd_state = np.random.RandomState(seed+ 961 * rep)
+#     population = (target.bounds[:, 1] - target.bounds[:, 0]) * rnd_state.rand(n, d) + target.bounds[:, 0] #target.x0 #np.array([ np.full((d,)) for _ in range(1)]).reshape(-1, d)
 
 
-    fvalues = []
-    costs =[]
-
-    if not isinstance(opt, Optimizer):
-        opt = opt(parametrization=d, budget=budget )
-        for vec in population:
-            cand = opt.parametrization.spawn_child(new_value=vec)
-            fx = target(vec.reshape(1, -1))
-            fvalues.append(fx)
-            opt.tell(cand, fx)
-            budget-=1
-            costs.append(1)
-
-    # direction_generator = QRDirectionGenerator(d=d, l=l, seed=direction_seed)
-    # opt = SZLan(population=population, gamma=gamma, beta=beta , h=h, direction_generator=direction_generator, seed=opt_seed)
-
-#    print("------------")
-#    print(f"Running {optimizer_name} with parameters: {params}....")
-#    print("------------")
-
-    num_evals = 0
-
-    best_on_iterate = None
-   # fvalues = []
-#    print("BEFORE LOOP -> ", budget)
-    while num_evals < budget:
-        X = opt.ask()
-#        Y = target(X)
-        Y = target(X.value.reshape(-1, d)) if not isinstance(X, np.ndarray) else target(X.reshape(-1, d))
-
-        if np.any(np.isnan(Y)):
-            print("NAN")
-            return np.nan, np.nan, fvalues + [np.nan], costs + [np.nan], params
-            #            f_found, f_found_on_iterate, fvalues, costs, params = result
+#     np.random.seed(opt_seed)
+#     opt = get_optimizer(optimizer_name, params, population, d, h, seed)
 
 
-#        if not isinstance(opt, Optimizer):
+#     fvalues = []
+#     costs =[]
+#     num_evals = 0
 
-#        if  opt.phase == SZLanPhase.INITIALIZATION or opt.phase == SZLanPhase.ITERATE:
-#        print(Y, np.min(Y))
-        fvalues.append(np.min(Y))
-#        if opt.phase == SZLanPhase.ITERATE and (best_on_iterate is None or np.min(Y) < best_on_iterate):
-        best_on_iterate = np.min(Y)      
-        opt.tell(X, Y)
+#     if not isinstance(opt, Optimizer):
+#         opt = opt(parametrization=d, budget=budget )
+#         for vec in population:
+#             cand = opt.parametrization.spawn_child(new_value=vec)
+#             fx = target(vec.reshape(1, -1))
+#             fvalues.append(fx[0])
+#             opt.tell(cand, fx)
+#             num_evals += 1
 
-        cost = 1 if not isinstance(opt, Optimizer) else  X.shape[0]
-        num_evals += cost
-        costs.append(cost)
+#         fvalues = [np.min(fvalues)]
+#         costs.append(num_evals)
 
-    f_best = target(opt.recommend().value.reshape(1, -1))[0] if not isinstance(opt, Optimizer) else target(opt.recommend()[0].reshape(1, -1))[0]
-#    print("ALL VALUES")
-#    print(fvalues)
-    return f_best, best_on_iterate, fvalues, costs, params
+#     while num_evals < budget:
+#         X = opt.ask()
+
+#         Y = target(X.value.reshape(-1, d)) if not isinstance(X, np.ndarray) else target(X.reshape(-1, d))
+
+#         if np.any(np.isnan(Y)):
+#             print("NAN")
+#             return np.nan, fvalues + [np.nan], costs + [np.nan], params
+
+#         fvalues.append(np.min(Y))
+
+#         opt.tell(X, Y)
+
+#         cost = 1 if not isinstance(opt, Optimizer) else  X.shape[0]
+#         num_evals += cost
+#         costs.append(cost)
+
+#     f_best = target(opt.recommend().value.reshape(1, -1))[0] if not isinstance(opt, Optimizer) else target(opt.recommend()[0].reshape(1, -1))[0]
+
+#     return f_best, fvalues, costs, params
 
 
 
@@ -109,6 +91,7 @@ def run_experiment(args):
     budget = args.budget #* (d + 1)
     seed = args.seed
     num_workers = args.num_workers
+    num_particles = args.num_particles
     reps = args.reps
     output_directory = f"{args.out_dir}/szlan_results/comparison/{target_name}_{reg}/{optimizer_name}"
     os.makedirs(output_directory + "/traces", exist_ok=True)
@@ -118,7 +101,6 @@ def run_experiment(args):
 
     filtered_param_grid = []
     for param in param_grid:
-        print(param)
         param_string = "_".join([str(x) for x in param])
         if not os.path.exists(f"{output_directory}/traces/{optimizer_name}_{target_name}_{d}_{param_string}_trace.txt"):
             filtered_param_grid.append(param)
@@ -133,21 +115,68 @@ def run_experiment(args):
     min_f_reg = target(target.x_star)[0]
     print(f"Function minimum: {min_f}")
 
-    run_opt = partial(run_optimizer, optimizer_name=optimizer_name, target=target, budget=budget, d=d, h=h, seed=seed)
+    
+    pool_results = {}
+    pool_best_val = (None, None)
+
+    run_opt = partial(run_optimizer, optimizer_name=optimizer_name, target=target, budget=budget, n=num_particles, d=d, h=h, seed=seed)
     with mp.Pool(processes=num_workers) as pool:
         for result in pool.imap_unordered( run_opt, param_grid):
-            f_found, f_found_on_iterate, fvalues, costs, params = result
+
+
+            f_found, fvalues, normalized_best_fvalues, costs, params = result
+
             rep = params[-1]
-            out_file_sumup = f"{optimizer_name}_{target_name}_{d}_" + "_".join([str(x) for x in params[:-1]]) + ".txt"
-            out_file_trace = f"{optimizer_name}_{target_name}_{d}_" + "_".join([str(x) for x in params]) + "_trace.txt"
-            print(f"[{optimizer_name}] {params} f found: {f_found}\trep: {rep}\tmin f: {min_f}")
-            with open(f"{output_directory}/{out_file_sumup}", "a") as f:
-                f.write(f"{rep},{f_found},{f_found_on_iterate},{fvalues[0]},{min_f_reg},{min_f}\n")
-                f.flush()
-            with open(f"{output_directory}/traces/{out_file_trace}", "a") as f:
-                for i in range(len(fvalues)):
-                    f.write(f"{fvalues[i]},{fvalues[0]},{costs[i]},{min_f_reg},{min_f}\n")
-                    f.flush()
+            param_str = "_".join([str(x) for x in params[:-1]])
+            if param_str not in pool_results:
+                pool_results[param_str] = [(f_found,  fvalues, normalized_best_fvalues, costs, params)]
+            elif len(pool_results[param_str]) < reps:
+                pool_results[param_str].append((f_found,  fvalues, normalized_best_fvalues, costs, params))
+                if len(pool_results[param_str]) == reps:
+
+
+
+                    out_file_trace = f"{optimizer_name}_{target_name}_{d}_" + param_str + f"_{num_particles}_trace.txt"
+
+
+
+                    mu_ffound = np.mean([x[0] for x in pool_results[param_str]])
+                    std_ffound = np.std([x[0] for x in pool_results[param_str]])
+
+
+
+                    if pool_best_val[0] is None or mu_ffound < pool_best_val[1]:
+                        old_best_str = pool_best_val[0]
+                        values = []
+                        costs = []
+                        norm_opt_gaps = []
+                        for ris in pool_results[param_str]:
+                            values.append(ris[1])
+                            norm_opt_gaps.append(ris[2])
+                            costs.append(ris[3])
+
+                        min_len = min([len(val) for val in values])
+                        if np.any([len(val) != min_len for val in values]):
+                            continue
+
+                        mu_values = np.mean(values, axis=0)
+                        std_values = np.std(values, axis=0)
+
+                        mu_normalized_best_fvalues = np.mean(norm_opt_gaps, axis=0)
+                        std_normalized_best_fvalues = np.std(norm_opt_gaps, axis=0)
+
+                        mu_costs = np.mean(costs, axis=0)
+                        std_costs = np.std(costs, axis=0)
+                        print(f"[{optimizer_name}] {params} f found: {f_found}\trep: {rep}\tmin f: {min_f}")
+
+                        if old_best_str is not None:
+                            print(old_best_str)
+                            os.remove(f"{output_directory}/traces/{optimizer_name}_{target_name}_{d}_" + old_best_str + f"_{num_particles}_trace.txt")
+                        with open(f"{output_directory}/traces/{out_file_trace}", "a") as f:
+                            for i in range(len(mu_values)):
+                                f.write(f"{mu_values[i]},{std_values[i]},{mu_values[0]},{std_values[0]},{mu_normalized_best_fvalues[i]},{std_normalized_best_fvalues[i]},{mu_costs[i]},{std_costs[i]},{min_f_reg},{min_f}\n")
+                                f.flush()
+                        pool_best_val = (param_str, mu_ffound)
 
     
 
@@ -166,6 +195,7 @@ if __name__ == "__main__":
     parser.add_argument('--reg', type=float, default=0.0, help='Regularization parameter')
 
     # Optimizer Parameters
+    parser.add_argument('--num_particles', type=int, default=10, help='Number of particles')
     parser.add_argument('--h', type=float, default=1e-7, help='Finite difference step size')
 
     # General Parameters
