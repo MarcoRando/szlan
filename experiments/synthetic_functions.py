@@ -144,7 +144,28 @@ class AckleyFunction(TargetFunction):
         term2 = -np.exp(sum_cos / d)
         return self._add_regularization(term1 + term2 + 20 + np.e + np.linalg.norm(x, axis=1)**2, x)
 
+    def grad(self, x):
+#        a=20, b=0.2, c=2*np.pi
+        x = np.atleast_2d(x)  # Ensure shape (m, n)
+        n = x.shape[1]
 
+
+        s1 = np.mean(x**2, axis=1, keepdims=True)
+        s2 = np.mean(np.cos(2 * np.pi * x), axis=1, keepdims=True)
+        
+        sqrt_s1 = np.sqrt(s1)
+        
+        # Avoid division by zero (at x=0)
+        denom = np.where(sqrt_s1 == 0, 1, sqrt_s1)
+        
+        term1 = 20 * 0.2 * np.exp(-0.2 * sqrt_s1) * (x / (n * denom))
+        term2 = (2*np.pi / n) * np.sin(2*np.pi * x) * np.exp(s2)
+        
+        grad = term1 + term2
+        
+        # If input was 1D, return 1D
+        return grad 
+        
 
 class StyblinksiTangFunction(TargetFunction):
     def __init__(self, d,regularization = 0.0, seed=121314):

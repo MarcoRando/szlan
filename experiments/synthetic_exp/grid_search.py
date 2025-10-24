@@ -12,7 +12,7 @@ from szlan.direction_generators.direction_generators import GaussianDirectionGen
 from synthetic_functions import *
 from utils import get_objective_function
 
-from comparisons_utils import run_optimizer,get_optimizer, get_params_grid
+from comparisons_utils import get_optimizer, get_params_grid
 
 import nevergrad as ng
 
@@ -22,62 +22,72 @@ import multiprocessing as mp
 
 
 
+def run_optimizer(params, optimizer_name, target, budget, d, h, n, seed):
+#    l, gamma, beta, n, rep = params
+
+    rep = params[-1]
+
+    direction_seed = seed + 134 * rep
+    opt_seed = seed + 473 * rep
+    min_f = target(target.x_star)[0]
+
+    rnd_state = np.random.RandomState(seed+ 961 * rep)
+    population = (target.bounds[:, 1] - target.bounds[:, 0]) * rnd_state.rand(n, d) + target.bounds[:, 0] #target.x0 #np.array([ np.full((d,)) for _ in range(1)]).reshape(-1, d)
 
 
-
-# def run_optimizer(params, optimizer_name, target, budget, d, h, n, seed):
-# #    l, gamma, beta, n, rep = params
-
-#     rep = params[-1]
-
-#     direction_seed = seed + 134 * rep
-#     opt_seed = seed + 473 * rep
+    np.random.seed(opt_seed)
+    opt = get_optimizer(optimizer_name, params, population, d, h, seed)
 
 
-#     rnd_state = np.random.RandomState(seed+ 961 * rep)
-#     population = (target.bounds[:, 1] - target.bounds[:, 0]) * rnd_state.rand(n, d) + target.bounds[:, 0] #target.x0 #np.array([ np.full((d,)) for _ in range(1)]).reshape(-1, d)
+    fvalues = []
+    normalized_fvalues = []
+    costs =[]
+    num_evals = 0
 
+    if not isinstance(opt, Optimizer):
+        opt = opt(parametrization=d, budget=budget )
+        for vec in population:
+            cand = opt.parametrization.spawn_child(new_value=vec)
+            fx = target(vec.reshape(1, -1))
+            fvalues.append(fx[0])
+            opt.tell(cand, fx)
+            num_evals += 1
 
-#     np.random.seed(opt_seed)
-#     opt = get_optimizer(optimizer_name, params, population, d, h, seed)
+        fvalues = [np.min(fvalues)]
+        costs.append(num_evals)
+    if len(fvalues) > 0:
+        f_0 = fvalues[0]
+        normalized_fvalues.append(1.0)
 
+    while num_evals < budget:
+        X = opt.ask()
 
-#     fvalues = []
-#     costs =[]
-#     num_evals = 0
+        Y = target(X.value.reshape(-1, d)) if not isinstance(X, np.ndarray) else target(X.reshape(-1, d))
 
-#     if not isinstance(opt, Optimizer):
-#         opt = opt(parametrization=d, budget=budget )
-#         for vec in population:
-#             cand = opt.parametrization.spawn_child(new_value=vec)
-#             fx = target(vec.reshape(1, -1))
-#             fvalues.append(fx[0])
-#             opt.tell(cand, fx)
-#             num_evals += 1
+        if np.any(np.isnan(Y)):
+            print("NAN")
+            return np.nan, fvalues + [np.nan], normalized_fvalues + [np.nan], costs + [np.nan], params
 
-#         fvalues = [np.min(fvalues)]
-#         costs.append(num_evals)
+        fvalues.append(np.min(Y))
+        if len(fvalues) ==1:
+            f_0 = fvalues[0]
+            normalized_fvalues.append(1.0)
+        else:
+            opt_gap = (fvalues[-1] - min_f) / (f_0 - min_f)
+            if normalized_fvalues[-1] > opt_gap:
+                normalized_fvalues.append(opt_gap)
+            else:
+                normalized_fvalues.append(normalized_fvalues[-1])
 
-#     while num_evals < budget:
-#         X = opt.ask()
+        opt.tell(X, Y)
 
-#         Y = target(X.value.reshape(-1, d)) if not isinstance(X, np.ndarray) else target(X.reshape(-1, d))
+        cost = 1 if not isinstance(opt, Optimizer) else  X.shape[0]
+        num_evals += cost
+        costs.append(cost)
 
-#         if np.any(np.isnan(Y)):
-#             print("NAN")
-#             return np.nan, fvalues + [np.nan], costs + [np.nan], params
+    f_best = target(opt.recommend().value.reshape(1, -1))[0] if not isinstance(opt, Optimizer) else target(opt.recommend()[0].reshape(1, -1))[0]
 
-#         fvalues.append(np.min(Y))
-
-#         opt.tell(X, Y)
-
-#         cost = 1 if not isinstance(opt, Optimizer) else  X.shape[0]
-#         num_evals += cost
-#         costs.append(cost)
-
-#     f_best = target(opt.recommend().value.reshape(1, -1))[0] if not isinstance(opt, Optimizer) else target(opt.recommend()[0].reshape(1, -1))[0]
-
-#     return f_best, fvalues, costs, params
+    return f_best, fvalues, normalized_fvalues, costs, params
 
 
 
@@ -100,6 +110,7 @@ def run_experiment(args):
     param_grid = get_params_grid(optimizer_name, d, reps)
 
     filtered_param_grid = []
+
     for param in param_grid:
         param_string = "_".join([str(x) for x in param])
         if not os.path.exists(f"{output_directory}/traces/{optimizer_name}_{target_name}_{d}_{param_string}_trace.txt"):
