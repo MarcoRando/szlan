@@ -29,7 +29,7 @@ class SZLan(Optimizer):
         self.gamma = gamma if isinstance(gamma, Callable) else lambda _: gamma
         self.beta = beta if isinstance(beta, Callable) else lambda _: beta
         
-        self.population = population if population is not None else self._build_population()
+        self.population = population #if population is not None else self._build_population()
         self.phase = SZLanPhase.INITIALIZATION
         self.rnd_state = np.random.RandomState(seed)
         self.best = None
