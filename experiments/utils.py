@@ -1,7 +1,7 @@
 import numpy as np 
 from enum import Enum
 
-from synthetic_functions import RosenbrockFunction, LeastSquares, RastriginFunction, LevyFunction, QuingFunction, GriewankFunction, AckleyFunction, StyblinksiTangFunction
+from synthetic_functions import * #RosenbrockFunction, LeastSquares, RastriginFunction, LevyFunction, QuingFunction, GriewankFunction, AckleyFunction, StyblinksiTangFunction
 
 
 class ExperimentStatus(Enum):
@@ -26,4 +26,10 @@ def get_objective_function(fun_name, d, reg, seed):
         return RastriginFunction(d=d, regularization=reg, seed=seed)
     elif fun_name == "Levy":
         return LevyFunction(d=d, regularization=reg, seed=seed)
+    elif fun_name == 'ZigZag':
+        return ZigZag(d=d, regularization=reg, seed=seed)
+    elif fun_name == 'ZigZagSmooth':
+        return ZigZagSmooth(d=d, regularization=reg, seed=seed)
+    elif fun_name == 'SumExp':
+        return SumExpTarget(d=d, regularization=reg, seed=seed)
     raise ValueError(f"Function {fun_name} not recognized")

@@ -20,19 +20,19 @@ num_workers=$2
 reps=$3
 #method=$4
 
-fun_names=('Ackley' 'Levy' 'StyblinkskiTang' 'Griewank' 'Rastrigin' 'Rosenbrock')
+fun_names=('ZigZag' 'ZigZagSmooth' 'Ackley' 'Levy' 'StyblinkskiTang' 'Griewank' 'Rastrigin' 'Rosenbrock')
 regularization=(0) #1)
 # 10)
 #('Ackley')
 # 'Levy' 'StyblinkskiTang' 'Griewank' 'Rosenbrock')
-dimensions=(10 50 100)
-num_particles=(2 5 10 100)
+dimensions=(100 50 10)
+num_particles=(100 10 5 2)
 #  200)
 
 #(100 200) 
 #(10 25 50) 
 #(5 10 25)
-MAX_JOBS=3
+MAX_JOBS=4
 
 for num_part in "${num_particles[@]}"; do
     for d in "${dimensions[@]}"; do

@@ -231,7 +231,96 @@ class LevyFunction(TargetFunction):
         term_last = (wd - 1.0) ** 2 * (1.0 + np.sin(2.0 * np.pi * wd) ** 2)
 
         return self._add_regularization(term1 + term_mid + term_last, x)  #+ 10 * np.square(np.linalg.norm(x, axis=1))
-        
+
+    def grad(self, x):
+
+        x = np.atleast_2d(x)
+        m, n = x.shape
+
+        w = 1 + (x - 1) / 4.0
+
+        grad = np.zeros_like(x)
+
+        sin_pi_w = np.sin(np.pi * w)
+        cos_pi_w = np.cos(np.pi * w)
+        sin_pi_w1 = np.sin(np.pi * w + 1)
+        cos_pi_w1 = np.cos(np.pi * w + 1)
+        sin_2pi_wn = np.sin(2 * np.pi * w[:, -1:])
+        cos_2pi_wn = np.cos(2 * np.pi * w[:, -1:])
+
+        term1 = 2 * np.pi * sin_pi_w[:, 0:1] * cos_pi_w[:, 0:1]
+        term2 = 2 * (w[:, 0:1] - 1) * (1 + 10 * sin_pi_w1[:, 0:1] ** 2)
+        term3 = 20 * np.pi * (w[:, 0:1] - 1) ** 2 * sin_pi_w1[:, 0:1] * cos_pi_w1[:, 0:1]
+        grad[:, 0:1] = 0.25 * (term1 + term2 + term3)
+
+        if n > 2:
+            wi = w[:, 1:-1]
+            wi_prev = w[:, :-2]
+            grad[:, 1:-1] = 0.25 * (
+                2 * (wi - 1) * (1 + 10 * np.sin(np.pi * wi + 1) ** 2)
+                + 20 * np.pi * (wi - 1) ** 2 * np.sin(np.pi * wi + 1) * np.cos(np.pi * wi + 1)
+                + 2 * np.pi * np.sin(np.pi * wi) * np.cos(np.pi * wi)
+            )
+
+
+        wn = w[:, -1:]
+        grad[:, -1:] = 0.25 * (
+            2 * (wn - 1) * (1 + np.sin(2 * np.pi * wn) ** 2)
+            + 4 * np.pi * (wn - 1) ** 2 * np.sin(2 * np.pi * wn) * np.cos(2 * np.pi * wn)
+            + 2 * np.pi * np.sin(np.pi * wn) * np.cos(np.pi * wn)
+        )
+
+        return grad
+
+
+
+
+class ZigZagSmooth(TargetFunction):
+
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("ZigZagSmooth", d, regularization, seed)
+        self.bounds = np.array([[-1.0, 1.0] for _ in range(d)])
+        self.min_f = -d
+        self.x0 = np.ones((1, self.d))
+        self.x_star = np.zeros((1, self.d))
+
+    def __call__(self, x):
+        t1 = -np.sum(np.cos(3*x), axis=1)
+        t2 = (1/5) * np.sum(x**2, axis=1)
+
+        return self._add_regularization(t1 + t2, x)
+
+class ZigZag(TargetFunction):
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("ZigZag", d, regularization, seed)
+        self.bounds = np.array([[-2.0, 2.0] for _ in range(d)])
+        self.x0 = np.ones((1, self.d))
+        self.x_star = np.zeros((1, self.d))
+        self.min_f = -(d - 1)
+
+    def __call__(self, x):
+        t = np.mod(x, 2.0)
+        return self._add_regularization(1.0 - np.sum(np.abs(t - 1.0), axis=1) + (1/5) * np.sum(x**2, axis=1), x)
+
+class SumExpTarget(TargetFunction):
+    def __init__(self, d, regularization = 0.0, seed=121314):
+        super().__init__("SumExp", d, regularization, seed)
+        self.bounds = np.array([[-1.0, 1.0] for _ in range(d)])
+        self.min_f = 0.0
+        self.x0 = np.ones((1, self.d))
+        self.x_star = np.zeros((1, self.d))
+        self.v1 = 0.1
+        self.v2 = 0.5
+
+    def __call__(self, x):
+        t1 = - np.sum(np.exp(-(x+2)**2/self.v1), axis=1)/np.sqrt(self.v1)
+        t2 = - np.sum(1.5 * np.exp(-(x-2)**2/self.v2), axis=1)/np.sqrt(self.v2)
+        t3 = 0.1 * np.sum(x**2, axis=1) + 1
+        return self._add_regularization(t1 + t2 + t3, x)
+
+
+
+
 class BukinFunction(TargetFunction):
     def __init__(self, regularization = 0.0, seed=121314):
         super().__init__("Bukin", 2, regularization=regularization, seed=seed)

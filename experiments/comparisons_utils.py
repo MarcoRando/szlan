@@ -50,13 +50,14 @@ def get_optimizer(optimizer_name, params, population, d, h, seed):
 
 def get_params_grid(optimizer_name, d, reps = 10):
   #  num_particles = [2, 5, 10, 100] #, 10]#, 100, 500] #[2, 5, 10, 100]#, 1000]
-    gammas = [1e-4, 1e-3, 1e-2, 1e-1, 1.0] #np.logspace(-4, 0, 20) #np.logspace(-3, 0, 10) #[0.001, 0.01, 0.05, 0.1, 1.0]#, 1.0]
-    num_directions = [1, 2, d//2, d]
+  #[0.00001, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]
+    gammas = [1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 5e-1, 1.0] #np.logspace(-4, 0, 20) #np.logspace(-3, 0, 10) #[0.001, 0.01, 0.05, 0.1, 1.0]#, 1.0]
+    num_directions = [1, 2, d//3, d//2, int((2/3) * d), d]
     print(f"[--] Getting param grid for {optimizer_name}")
     if optimizer_name == "szlan":
 
 
-        betas = [0.1, 1.0, 10.0, 50.0, 100.0] #np.logspace(-2, 3, 10)#[0.01, 0.1, 1.0, 5.0, 10.0, 100.0, 1000.0, 5000.0] 
+        betas = [0.1, 0.5, 1.0, 2.5, 5.0, 7.5, 10.0, 25.0, 50.0, 100.0] #np.logspace(-2, 3, 10)#[0.01, 0.1, 1.0, 5.0, 10.0, 100.0, 1000.0, 5000.0] 
         dir_type = ['qr']
         params = [num_directions, gammas, betas, dir_type]
  #       num_particles.append(1)
@@ -75,19 +76,19 @@ def get_params_grid(optimizer_name, d, reps = 10):
         params = [scales]
     elif optimizer_name == 'cbo':
         #    def __init__(self, population, dt, lam, alpha, sigma, seed):
-        dt = [0.0001, 0.001, 0.01, 0.1, 1.0] #np.linspace(0.01, 1.0, 5) #np.linspace(0.001, 1.0, 20) #np.linspace(0.01, 1.0, 5)
-        lam = [0.01, 0.1, 1.0, 10.0, 100.0] #np.linspace(0.1, 1.0, 5) #np.logspace(-2, 1, 20) #np.linspace(0.1, 1.0, 5)
-        alpha = [0.001, 0.01, 0.1, 1.0] # np.linspace(0.1, 1.0, 5) #np.logspace(-2, 1, 20) #np.linspace(0.1, 1.0, 5)
-        sigma = [0.01, 0.1, 1.0, 10.0, 100.0]# np.linspace(0.1, 10.0, 10) #np.linspace(0.1, 50.0, 20) #np.linspace(0.1, 10.0, 10)
+        dt = [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0] #np.linspace(0.01, 1.0, 5) #np.linspace(0.001, 1.0, 20) #np.linspace(0.01, 1.0, 5)
+        lam = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0] #np.linspace(0.1, 1.0, 5) #np.logspace(-2, 1, 20) #np.linspace(0.1, 1.0, 5)
+        alpha = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0] # np.linspace(0.1, 1.0, 5) #np.logspace(-2, 1, 20) #np.linspace(0.1, 1.0, 5)
+        sigma = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]# np.linspace(0.1, 10.0, 10) #np.linspace(0.1, 50.0, 20) #np.linspace(0.1, 10.0, 10)
         use_cons = [0] #[0, 1]
         params = [dt, lam, alpha, sigma, use_cons]
     elif optimizer_name == "de_2p":
-        scales = np.linspace(0.1, 1.0, 5)  #[0.01, 0.1]# np.linspace(0.1, 1.0, 5)
-        diff_weights = np.linspace(0.1, 1.0, 5) #[0.01, 0.1, 1.0] #np.linspace(0.1, 1.0, 5)
+        scales = np.logspace(-2, 1, 10)  #[0.01, 0.1]# np.linspace(0.1, 1.0, 5)
+        diff_weights = np.logspace(-2, 1, 10) #[0.01, 0.1, 1.0] #np.linspace(0.1, 1.0, 5)
         params = [scales, diff_weights, diff_weights]
     elif optimizer_name == "pso":
-        omegas = np.linspace(0.01, 1.0, 5) #np.linspace(0.1, 1.0, 5)#[0.001, 0.01, 0.1]#= np.linspace(0.1, 1.0, 5)
-        phis = np.linspace(0.1, 2.0, 5) #np.linspace(0.1, 2.0, 5) #[0.01, 0.1, 1.0] #np.linspace(0.1, 2.0, 5)
+        omegas = np.logspace(-2, 1, 10) #np.linspace(0.1, 1.0, 5)#[0.001, 0.01, 0.1]#= np.linspace(0.1, 1.0, 5)
+        phis = np.logspace(-2, 1, 10) #np.linspace(0.1, 2.0, 5) #[0.01, 0.1, 1.0] #np.linspace(0.1, 2.0, 5)
         params = [omegas, phis, phis]
 
     params += [range(reps)] #[num_particles, range(reps)]

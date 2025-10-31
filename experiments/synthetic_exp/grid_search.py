@@ -199,7 +199,7 @@ if __name__ == "__main__":
     
     # Experiment Parameters
     parser.add_argument("optimizer", type=str, default="szlan", choices=["szlan", 'fd_gaus', 'fd_sph', 'fd_orth', "cmaes", "de_2p", "pso", 'cbo'], help="Optimizer to use")
-    parser.add_argument("fun_name", type=str, default="Rosenbrock", choices=["Rosenbrock", "Griewank", "Ackley", "Levy", "StyblinkskiTang", "Rastrigin", "Quing"], help="Objective function to optimize")
+    parser.add_argument("fun_name", type=str, default="Rosenbrock", choices=["Rosenbrock", "Griewank", "Ackley", "Levy", "StyblinkskiTang", "Rastrigin", "Quing", "ZigZag", "ZigZagSmooth"], help="Objective function to optimize")
     parser.add_argument("--d", type=int, default=10, help="Dimension of the problem")
     parser.add_argument('--budget', type=int, default=1000, help='Function evaluation budget')
     parser.add_argument('--reps', type=int, default=10, help='Number of repetitions for the experiment')
