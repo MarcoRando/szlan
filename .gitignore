@@ -3,6 +3,9 @@
 *plots*
 *backup*
 *.png
+*.pdf
+*.out
+*.zip
 
 
 # Byte-compiled / optimized / DLL files
