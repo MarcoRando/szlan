@@ -41,7 +41,7 @@ class SZLan(Optimizer):
         self.phase = SZLanPhase.INITIALIZATION
 
         self.generator = torch.Generator(device=device).manual_seed(seed)
-        self.best = None
+
         self.k = 0
 
     def _approx_gradient(self, h):
@@ -68,9 +68,6 @@ class SZLan(Optimizer):
         return self.population
     
     def tell(self, X, y):
-        best_idx = y.argmin().item()#np.argmin(y)
-        if self.best is None or y[best_idx] < self.best[1]:
-            self.best = (X[best_idx, :], y[best_idx].item())
             
         if self.phase == SZLanPhase.INITIALIZATION or self.phase == SZLanPhase.ITERATE:
             self.current_values = y 
@@ -82,9 +79,6 @@ class SZLan(Optimizer):
             self.forward_values = y
             self.phase = SZLanPhase.ITERATE
             
-
-    def recommend(self):
-        return self.best 
 
 
     

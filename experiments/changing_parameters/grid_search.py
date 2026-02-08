@@ -36,10 +36,14 @@ def run_optimizer(params, target, budget, d, h, seed, dtype, device):
 
     num_evals = 0
     fvalues = []
-
+    best = None
     while num_evals < budget:
         X = opt.ask()
         Y = target(X)
+        
+        if best is None or torch.min(Y) < best:
+            best = Y.min().item()
+        
         if torch.any(torch.isnan(Y)):
             return np.nan, fvalues + [np.nan], params
 #        return np.nan, fvalues + [np.nan], params
@@ -53,7 +57,7 @@ def run_optimizer(params, target, budget, d, h, seed, dtype, device):
 
         num_evals += X.shape[0]
 
-    return opt.best[1], fvalues, params
+    return best, fvalues, params
 
 
 
