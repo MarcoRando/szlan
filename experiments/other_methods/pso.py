@@ -59,8 +59,8 @@ class PSO(Optimizer):
             self.gbest_F = best_val.item()
             self.gbest_X = self.pbest_X[best_idx].clone()
 
-        r1 = torch.rand(self.n, self.d, device=self.device, dtype=self.dtype)
-        r2 = torch.rand(self.n, self.d, device=self.device, dtype=self.dtype)
+        r1 = torch.rand(self.n, self.d, generator = self.generator, device=self.device, dtype=self.dtype)
+        r2 = torch.rand(self.n, self.d, generator = self.generator, device=self.device, dtype=self.dtype)
 
         self.V = (
             self.inertia * self.V

@@ -3,6 +3,9 @@ import torch
 
 from cbo import CBO
 from pso import PSO
+from random_search import RS
+from emna import EMNA
+from de import DifferentialEvolution
 import sys 
 
 import tqdm
@@ -12,7 +15,7 @@ from synthetic_functions_torch import ZigZag
 
 import matplotlib.pyplot as plt
 
-d = 100
+d = 50
 n = 10
 dtype = torch.float64
 device = "cpu"
@@ -24,9 +27,15 @@ generator = torch.Generator(device=device).manual_seed(seed)
 
 population = (target.bounds[:, 1] - target.bounds[:, 0]) * torch.rand((n, d), generator=generator, device=device, dtype=dtype) + target.bounds[:, 0] #target.x0 #np.array([ np.full((d,)) for _ in range(1)]).reshape(-1, d)
 
-#opt = CBO(population=population, dt=0.0001, lam=0.001, alpha=10.0, sigma=1.0, use_cons=False, seed=seed, dtype=dtype, device=device)
+#opt = CBO(population=population, dt=0.01, lam=0.001, alpha=10.0, sigma=10.0,  seed=seed, dtype=dtype, device=device)
 
-opt = PSO(population=population, inertia=0.8, c1=1.5, c2=1.5, seed=seed, dtype=dtype, device=device)
+#opt = PSO(population=population, inertia=0.80, c1=1.45, c2=1.45, seed=seed, dtype=dtype, device=device)
+
+#opt = RS(population=population, sigma=0.1, seed=seed, dtype=dtype, device=device)
+
+#opt = DifferentialEvolution(population=population, F=0.8, CR=0.7, seed=seed, dtype=dtype, device=device)
+
+opt = EMNA(population=population, mu=0.5, isotropic=True, seed=seed, dtype=dtype, device=device)
 
 print(target(target.x0))
 
