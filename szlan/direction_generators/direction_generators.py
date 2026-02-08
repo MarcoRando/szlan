@@ -11,6 +11,9 @@ class DirectionGenerator:
                  device : str = "cpu",
                  dtype : torch.dtype = torch.float64
                  ):
+        assert s > 0, "Number of matrices s must be greater than 0"
+        assert d >= l >0, "Dimension d must be greater or equals to number of directions l which must be greater than 0"
+
         self.d = d 
         self.l = l
         self.s = s
@@ -31,10 +34,9 @@ class QRDirectionGenerator(DirectionGenerator):
                  device : str = "cpu",
                  dtype : torch.dtype = torch.float64                 
                  ):
-        assert s > 0, "Number of matrices s must be greater than 0"
-        assert d >= l >0, "Dimension d must be greater or equals to number of directions l which must be greater than 0"
         super().__init__(d=d, l=l, s=s, nrm_const=d, seed=seed, device=device, dtype=dtype)
 
     def __call__(self):
         A = torch.randn((self.s, self.d, self.l), generator=self.generator, device=self.device, dtype=self.dtype)
         return torch.linalg.qr(A)[0].transpose_(1,2)
+

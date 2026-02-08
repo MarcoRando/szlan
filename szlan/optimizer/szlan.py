@@ -22,6 +22,7 @@ class SZLan(Optimizer):
                  h : float | Callable[[int], float]  = 1e-7,
                  gamma : float | Callable[[int], float] = 0.1,
                  beta : float | Callable[[int], float] = 1.0,
+                 just_fd : bool = False,
                  seed : int = 121314,
                  device : str = "cpu",
                  dtype : torch.dtype = torch.float64
@@ -31,7 +32,7 @@ class SZLan(Optimizer):
         self.s, self.l, self.nrm_const, self.d = self.direction_generator.s, self.direction_generator.l, self.direction_generator.nrm_const, self.direction_generator.d
         self.P = self.direction_generator()
         self.num_particles =  population.shape[0]
-        
+        self.just_fd = just_fd
         self.h = h if isinstance(h, Callable) else lambda _: h
         self.gamma = gamma if isinstance(gamma, Callable) else lambda _: gamma
         self.beta = beta if isinstance(beta, Callable) else lambda _: beta
@@ -55,18 +56,21 @@ class SZLan(Optimizer):
         elif self.phase == SZLanPhase.GRADIENT_APPROX:
             return (self.population[:, None, None, :] + h_k * self.P[None, :, :, :]).reshape(-1, self.d)
 
-        z_k = torch.randn((self.num_particles, self.population.shape[1]), generator=self.generator, device=self.device, dtype=self.dtype)
         g_k = self._approx_gradient(h_k) 
         gamma_k = self.gamma(self.k)
-        beta_k = self.beta(self.k)
-        self.population.add_(gamma_k * g_k, alpha = -1).add_(np.sqrt(2 *  gamma_k / beta_k) * z_k)
+        self.population.add_(gamma_k * g_k, alpha = -1)
+        z_k = 0.0
+        if not self.just_fd:
+            z_k = torch.randn((self.num_particles, self.population.shape[1]), generator=self.generator, device=self.device, dtype=self.dtype)
+            beta_k = self.beta(self.k)
+            self.population.add_(np.sqrt(2 *  gamma_k / beta_k) * z_k)
 
         return self.population
     
     def tell(self, X, y):
-        best_idx = np.argmin(y)
+        best_idx = y.argmin().item()#np.argmin(y)
         if self.best is None or y[best_idx] < self.best[1]:
-            self.best = (X[best_idx, :], y[best_idx])
+            self.best = (X[best_idx, :], y[best_idx].item())
             
         if self.phase == SZLanPhase.INITIALIZATION or self.phase == SZLanPhase.ITERATE:
             self.current_values = y 
