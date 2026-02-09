@@ -92,6 +92,19 @@ class SchwefelFunction(TargetFunction):
 #        return self._add_regularization(418.9829 * self.d - np.sum(x * np.sin(np.sqrt(np.abs(x))), axis=1), x)
 
 
+class TridFunction(TargetFunction):
+
+    def __init__(self, d, dtype=torch.float64, device='cpu'):
+        super().__init__("Trid", d, dtype=dtype, device=device)
+        self.bounds = torch.tensor([[-d**2, d**2] for _ in range(d)], dtype=dtype, device=device)
+        self.min_f = - (d * (d + 4) * (d - 1)) / 6
+        self. x0 = torch.zeros((1, d), dtype=dtype, device=device)
+    
+    def __call__(self, x):
+        term1 = torch.sum((x - 1)**2, dim=1)
+        term2 = torch.sum(x[:, 1:] * x[:, :-1], dim=1)
+        return term1 - term2 
+
 
 
 

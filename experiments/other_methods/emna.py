@@ -36,11 +36,11 @@ class EMNA(Optimizer):
 
         mean = torch.mean(self.population[idx, :], dim=0)
         diffs = self.population[idx, :] - mean
-        sigma = torch.std(diffs, dim=0)
+        sigma = torch.sqrt(diffs.square().mean(dim=0))
         if self.isotropic:
             sigma = torch.mean(sigma).unsqueeze(0)  
         sigma += self.min_sigma
-        print("Sigma:", sigma)
+
         eps = torch.randn((self.n, self.d), generator=self.generator, device=self.device, dtype=self.dtype)
         self.population = mean + sigma * eps
             
