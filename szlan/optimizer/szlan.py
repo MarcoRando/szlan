@@ -27,7 +27,7 @@ class SZLan(Optimizer):
                  device : str = "cpu",
                  dtype : torch.dtype = torch.float64
                 ):
-        super().__init__(device=device, dtype=dtype)
+        super().__init__(device=device, dtype=dtype, seed=seed)
         self.direction_generator = direction_generator
         self.s, self.l, self.nrm_const, self.d = self.direction_generator.s, self.direction_generator.l, self.direction_generator.nrm_const, self.direction_generator.d
         self.P = self.direction_generator()
@@ -39,8 +39,6 @@ class SZLan(Optimizer):
         
         self.population = population 
         self.phase = SZLanPhase.INITIALIZATION
-
-        self.generator = torch.Generator(device=device).manual_seed(seed)
 
         self.k = 0
 

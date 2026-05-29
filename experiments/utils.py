@@ -16,7 +16,12 @@ def get_objective_function(fun_name, d, dtype, device):
         return ZigZag(d=d, dtype=dtype, device=device)
     elif fun_name == 'ZigZagSmooth':
         return ZigZagSmooth(d=d, dtype=dtype, device=device)
-
+    elif fun_name == 'Ackley':
+        return AckleyFunction(d=d, dtype=dtype, device=device)
+    elif fun_name == 'Rosenbrock':
+        return RosenbrockFunction(d=d, dtype=dtype, device=device)
+    elif fun_name == 'Griewank':
+        return GriewankFunction(d=d, dtype=dtype, device=device)
     # if fun_name == "Rosenbrock":
     #     return RosenbrockFunction(d=d, regularization=reg, seed=seed)
     # elif fun_name == "Griewank":
