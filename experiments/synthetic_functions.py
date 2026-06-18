@@ -201,7 +201,7 @@ class Rastrigin(TargetFunction):
         return 0.0
         
     def __call__(self, x):
-        return 10 * self.d + torch.sum(x**2 - 10 * torch.cos(2 * pi * x))
+        return 10 * self.d + torch.sum(x**2 - 10 * torch.cos(2 * pi * x)) + self.lam * x.norm(p=2).square()
 
     def grad(self, x):
         xv = x.detach().requires_grad_(True)
@@ -209,6 +209,82 @@ class Rastrigin(TargetFunction):
         f.sum().backward()
         return xv.grad.detach()
 
+
+class Griewank(TargetFunction):
+    def __init__(self, d, dtype=torch.float64, device='cpu'):
+        super().__init__("Griewank", d, dtype=dtype, device=device)
+
+
+    @property
+    def bounds(self):
+        return (-600.0, 600.0)
+    
+
+    @property
+    def x_star(self):
+        return torch.zeros(self.d, dtype=self.dtype, device=self.device)
+
+    @property
+    def f_star(self):
+        return 0.0
+        
+
+    def __call__(self, x):
+        d = x.shape[-1]
+        indices = torch.arange(1, d + 1).to(x.device)
+        sum_sq = torch.sum(x ** 2, dim=-1) / 4000
+        prod_cos = torch.prod(torch.cos(x / torch.sqrt(indices)), dim=-1)
+        return 1 + sum_sq - prod_cos
+
+    def grad(self, x):
+        xv = x.detach().requires_grad_(True)
+        f = self(xv)
+        f.sum().backward()
+        return xv.grad.detach()    
+
+
+class Levy(TargetFunction):
+    def __init__(self, d, dtype=torch.float64, device='cpu'):
+        super().__init__("Levy", d, dtype, device)
+
+    @property
+    def bounds(self):
+        return (-10.0, 10.0)
+
+    @property
+    def x_star(self):
+        return torch.ones(self.d, dtype=self.dtype, device=self.device)
+
+    @property
+    def f_star(self):
+        return 0.0
+
+    def __call__(self, x):
+
+        w = 1.0 + (x - 1.0) / 4.0
+
+        # Term 1: sin^2(pi * w1)
+        term1 = torch.sin(pi * w[0]) ** 2
+
+        # Middle sum over i = 1..d-1 (handle d=1 gracefully)
+        if w.shape[0] > 1:
+            wi = w[:-1]
+            mid = (wi - 1.0) ** 2 * (1.0 + 10.0 * torch.sin(pi * wi + 1.0) ** 2)
+            term_mid = torch.sum(mid, axis=-1)
+        else:
+            term_mid = torch.zeros((w.shape[0],), dtype=x.dtype, device=x.device )
+
+        # Last term uses w_d
+        wd = w[-1]
+        term_last = (wd - 1.0) ** 2 * (1.0 + torch.sin(2.0 * pi * wd) ** 2)
+
+        return term1 + term_mid + term_last
+
+    def grad(self, x):
+        xv = x.detach().requires_grad_(True)
+        f = self(xv)
+        f.backward()
+        return xv.grad.detach()    
 
 # # class RastriginFunction(TargetFunction):
 

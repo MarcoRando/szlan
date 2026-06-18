@@ -9,7 +9,7 @@ import fcntl
 
 
 sys.path.append("../")
-from synthetic_functions import LeastSquares, Ackley, Rosenbrock, Rastrigin
+from synthetic_functions import LeastSquares, Ackley, Rosenbrock, Rastrigin, Griewank, Levy
 
 sys.path.append("../../")
 from szlan.optimizer.lan import Langevin
@@ -23,7 +23,7 @@ DTYPES = {
 
 def get_args():
     parser = ap.ArgumentParser(description='Ablation study for Langevin algorithm')
-    parser.add_argument("fun_name", default='least_squares', choices=['least_squares', 'rastrigin', 'rosenbrock', 'ackley'], help='Target function')
+    parser.add_argument("fun_name", default='least_squares', choices=['least_squares', 'rastrigin', 'rosenbrock', 'griewank', 'ackley', 'levy'], help='Target function')
     parser.add_argument("--d", default=10, type=int, help='Dimension')
 
     # Langevin parameters
@@ -51,6 +51,10 @@ def get_target(fun_name : str, d : int, seed : int, dtype : torch.dtype, device 
         return Ackley(d = d, lam=1e-3, dtype = dtype, device = device)
     elif fun_name == 'rastrigin':
         return Rastrigin(d = d, lam=1e-3, dtype = dtype, device = device)
+    elif fun_name == 'griewank':
+        return Griewank(d = d, dtype = dtype, device = device)
+    elif fun_name == 'levy':
+        return Levy(d = d, dtype = dtype, device = device)
         
     raise ValueError(f"Unrecognised function name {fun_name}!")
 
@@ -103,30 +107,36 @@ def main(args):
 
     target_seed = 98 * base_seed + 901
     
-    # if os.path.exists(f"{out_dir}/{fun_name}_{d}_tested.log"):
-    #     with open(f"{out_dir}/{fun_name}_{d}_tested.log", 'r') as f:
-    #         lines = f.readlines()
-    #     for line in lines:
-    #         splitted = line.split(',')
-    #         if gamma == float(splitted[0]) and beta == float(splitted[1]):
-    #             print("[--] This experiment has been already performed!")
+    if os.path.exists(f"{out_dir}/{fun_name}_{d}_tested.log"):
+        with open(f"{out_dir}/{fun_name}_{d}_tested.log", 'r') as f:
+            lines = f.readlines()
+        if len(lines) > 0:
+            for line in lines:
+                splitted = line.split(',')
+                if gamma == float(splitted[0]) and beta == float(splitted[1]):
+                    print("[--] This experiment has been already performed!")
+                    return
 
     target = get_target(fun_name, d, target_seed, dtype, device)
     mu_values, std_values, is_nan = run_experiment(target, gamma, beta, reps, T, base_seed, dtype, device)
 
     with open(f"{out_dir}/{fun_name}_{d}_tested.log", 'a') as f:
         fcntl.flock(f, fcntl.LOCK_EX)
-        idx_best = np.argmin(mu_values)
-        f.write(f"{gamma},{beta},{mu_values[idx_best]},{std_values[idx_best]}\n")
+        
+        idx_best = np.argmin(mu_values + std_values)
+        lst_500_mu, lst_500_std = mu_values[-500:], std_values[-500:]
+        best_last_500 = np.argmin(lst_500_mu + lst_500_std)
+
+        f.write(f"{gamma},{beta},{mu_values[idx_best]},{std_values[idx_best]},{idx_best},{lst_500_mu[best_last_500]},{lst_500_std[best_last_500]},{T - 500 + best_last_500}\n")
         f.flush()
         os.fsync(f.fileno())
         fcntl.flock(f, fcntl.LOCK_UN)
         
 
-    with open(f"{out_dir}/traces/{fun_name}_{d}_{gamma}_{beta}.csv", 'w') as f:
-        for i in range(mu_values.shape[0]):
-            f.write(f"{mu_values[i]},{std_values[i]}\n")
-            f.flush()
+    # with open(f"{out_dir}/traces/{fun_name}_{d}_{gamma}_{beta}.csv", 'w') as f:
+    #     for i in range(mu_values.shape[0]):
+    #         f.write(f"{mu_values[i]},{std_values[i]}\n")
+    #         f.flush()
 
 
 if __name__ == '__main__':
