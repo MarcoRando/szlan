@@ -82,10 +82,10 @@ class LeastSquares(TargetFunction):
         self.A = torch.randn((self.d, self.d), dtype = self.dtype, device = self.device, generator=self.generator)
         self._x_star = torch.ones((self.d, ), dtype=self.dtype, device=self.device, requires_grad=False)
 
-        U, S, V = self.A.svd()
-        S = torch.linspace(sqrt(L), sqrt(mu), steps = self.A.shape[0], dtype = self.dtype, device = self.device, requires_grad=False)
-        self.A = U @ S.diag() @ V
-        self.y = self.A @ self.x_star 
+#        U, S, V = self.A.svd()
+#        S = torch.linspace(sqrt(L), sqrt(mu), steps = self.A.shape[0], dtype = self.dtype, device = self.device, requires_grad=False)
+#        self.A = U @ S.diag() @ V
+        self.y = self.A @ self._x_star 
 
     @property
     def bounds(self) -> Tuple[float, float]:
@@ -100,7 +100,7 @@ class LeastSquares(TargetFunction):
         return 0.0
 
     def __call__(self, x):
-        return 0.5 * (self.A @ x - self.y).norm(p=2)
+        return 0.5 * (self.A @ x - self.y).norm(p=2).square()
     
     def grad(self, x):
         return self.A.T @ (self.A @ x - self.y)

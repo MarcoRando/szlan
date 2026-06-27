@@ -19,9 +19,8 @@ class Langevin(Optimizer):
                  dtype : torch.dtype = torch.float64, 
                  seed : int = 123144):
         
-        super().__init__(device=device, dtype=dtype, seed=seed)
+        super().__init__(x0=x0, device=device, dtype=dtype, seed=seed)
         
-        self.x = x0
         self.grad = grad
         self.gamma = gamma if isinstance(gamma, Callable) else lambda _ : gamma
         self.beta = beta if isinstance(beta, Callable) else lambda _ : beta
@@ -30,7 +29,7 @@ class Langevin(Optimizer):
     def ask(self):
         return self.x
     
-    def tell(self, x, y):
+    def tell(self, y):
         z_k = torch.randn(self.x.shape, dtype=self.x.dtype, device=self.x.device, generator = self.generator)        
         gamma_k, beta_k = self.gamma(self.k), self.beta(self.k)
         grad_k = self.grad(self.x)
