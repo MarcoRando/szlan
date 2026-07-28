@@ -11,14 +11,9 @@ from szlan.optimizer.szlan import Optimizer
 
 class PSO(Optimizer):
 
-    def __init__(self, population, 
-                 inertia=0.729,
-                 c1=1.49445,
-                 c2=1.49445,
-                 seed = 131415, 
-                 dtype=torch.float64, 
-                 device='cpu'):
-        super().__init__(device=device, dtype=dtype)
+    def __init__(self, population, inertia=0.729, c1=1.49445, c2=1.49445, seed = 131415, dtype=torch.float64, device='cpu'):
+        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
+
         self.population = population
         self.inertia = inertia
         self.c1 = c1

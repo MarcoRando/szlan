@@ -1,5 +1,6 @@
 import torch
 
+
 class Optimizer:
     
     def __init__(self, x0 : torch.Tensor, device : str = "cpu", dtype : torch.dtype = torch.float64, seed : int = 121341):
@@ -11,8 +12,6 @@ class Optimizer:
     def ask(self):
         raise NotImplementedError("Subclasses should implement this method.")
     
-    def tell(self, y):
+    def tell(self, X, y):
         raise NotImplementedError("Subclasses should implement this method.")
 
-    # def recommend(self):
-    #     raise NotImplementedError("Subclasses should implement this method.")

@@ -1,7 +1,7 @@
-import torch
-from math import sqrt, pi, e
+from math import pi, sqrt
 
-from typing import Tuple
+import torch
+
 
 class TargetFunction:
     
@@ -41,7 +41,7 @@ class Quadratic(TargetFunction):
         self._f_star = 0.5 * (self.b @ self._x_star)          # scalar
  
     @property
-    def bounds(self) -> Tuple[float, float]:
+    def bounds(self) -> tuple[float, float]:
         return (-10.0, 10.0)
  
     @property
@@ -82,13 +82,14 @@ class LeastSquares(TargetFunction):
         self.A = torch.randn((self.d, self.d), dtype = self.dtype, device = self.device, generator=self.generator)
         self._x_star = torch.ones((self.d, ), dtype=self.dtype, device=self.device, requires_grad=False)
 
-#        U, S, V = self.A.svd()
-#        S = torch.linspace(sqrt(L), sqrt(mu), steps = self.A.shape[0], dtype = self.dtype, device = self.device, requires_grad=False)
-#        self.A = U @ S.diag() @ V
+        U, S, V = self.A.svd()
+        S = torch.linspace(sqrt(L), sqrt(mu), steps = self.A.shape[0], dtype = self.dtype, device = self.device, requires_grad=False)
+        self.A = U @ S.diag() @ V
+
         self.y = self.A @ self._x_star 
 
     @property
-    def bounds(self) -> Tuple[float, float]:
+    def bounds(self) -> tuple[float, float]:
         return (-10.0, 10.0)
  
     @property
@@ -115,7 +116,7 @@ class Rosenbrock(TargetFunction):
         self.b_coef = b
  
     @property
-    def bounds(self) -> Tuple[float, float]:
+    def bounds(self) -> tuple[float, float]:
         return (-5.0, 10.0)
  
     @property
@@ -157,7 +158,7 @@ class Ackley(TargetFunction):
         self.lam = lam
  
     @property
-    def bounds(self) -> Tuple[float, float]:
+    def bounds(self) -> tuple[float, float]:
         return (-32.768, 32.768)
  
     @property

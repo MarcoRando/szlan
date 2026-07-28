@@ -80,7 +80,7 @@ def run_experiment(target, gamma, beta, reps, T, seed, dtype, device):
                 return np.array([1.0 for _ in range(reps)]), np.array([0.0 for _ in range(reps)]), True
 
 #            opt.tell(x, y)
-            opt.tell(y)
+            opt.tell(x, y)
             function_values[rep].append(y.item())
             iterator.set_postfix({'rep' : f"{rep}/{reps}", 'F_k / F_0' : f"{function_values[rep][-1]/function_values[rep][0]:.5f}"})
     

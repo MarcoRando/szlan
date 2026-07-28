@@ -1,9 +1,7 @@
-import sys 
-
-
-from math import sqrt
+import sys
 
 import torch
+
 sys.path.append("../../")
 
 from szlan.optimizer.szlan import Optimizer
@@ -12,7 +10,7 @@ from szlan.optimizer.szlan import Optimizer
 class EMNA(Optimizer):
 
     def __init__(self, population, mu = 0.5, isotropic = True, min_sigma=1e-5, seed=123123, dtype=torch.float64, device='cpu'):
-        super().__init__(dtype=dtype, device=device)
+        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
         self.population = population
 
         self.isotropic = isotropic

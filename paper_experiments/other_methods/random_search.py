@@ -11,12 +11,9 @@ from szlan.optimizer.szlan import Optimizer
 
 class RS(Optimizer):
 
-    def __init__(self, population, 
-                 sigma=1.0,
-                 seed = 131415, 
-                 dtype=torch.float64, 
-                 device='cpu'):
-        super().__init__(device=device, dtype=dtype)
+    def __init__(self, population, sigma=1.0, seed = 131415, dtype=torch.float64, device='cpu'):
+
+        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
         self.population = population
         self.sigma = sigma
 

@@ -16,16 +16,8 @@ class DEPhase(Enum):
 
 
 class DifferentialEvolution(Optimizer):
-    def __init__(
-        self,
-        population,
-        F=0.8,
-        CR=0.9,
-        seed = 131415,
-        dtype = torch.float64,
-        device = 'cpu'
-    ):
-        super().__init__(device=device, dtype=dtype)
+    def __init__(self, population, F=0.8, CR=0.9, seed = 131415, dtype = torch.float64, device = 'cpu'):
+        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
 
         self.population = population.detach().clone()
         self.n, self.d = population.shape

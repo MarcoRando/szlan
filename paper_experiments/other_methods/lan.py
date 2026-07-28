@@ -1,10 +1,12 @@
+import sys
+from collections.abc import Callable
+from math import sqrt
+
 import torch
 
-from math import sqrt
-from .opt import Optimizer
+sys.path.append("../../")
 
-
-from typing import Callable
+from szlan.optimizer.szlan import Optimizer
 
 
 class Langevin(Optimizer):
@@ -29,7 +31,7 @@ class Langevin(Optimizer):
     def ask(self):
         return self.x
     
-    def tell(self, y):
+    def tell(self, X, y):
         z_k = torch.randn(self.x.shape, dtype=self.x.dtype, device=self.x.device, generator = self.generator)        
         gamma_k, beta_k = self.gamma(self.k), self.beta(self.k)
         grad_k = self.grad(self.x)
