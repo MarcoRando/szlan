@@ -1,2 +1,4 @@
-nevergrad
+numpy
+pandas
 matplotlib
+tqdm

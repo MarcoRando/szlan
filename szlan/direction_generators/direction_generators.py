@@ -57,19 +57,4 @@ class SphericalDirectionGenerator(DirectionGenerator):
         P = torch.randn(size=(self.s,self.d, self.l), dtype=self.dtype, device=self.device, generator=self.generator)
         return (P / P.norm(p=2, dim=1, keepdim=True)).transpose(1,2)
         
-    
-class QRDirectionGenerator(DirectionGenerator):
-    def __init__(self, 
-                 d : int, 
-                 l : int, 
-                 s : int,
-                 seed : int = 12131415,
-                 device : str = "cpu",
-                 dtype : torch.dtype = torch.float64                 
-                 ):
-        super().__init__(d=d, l=l, s=s, nrm_const=d, seed=seed, device=device, dtype=dtype)
-
-    def __call__(self):
-        A = torch.randn((self.s, self.d, self.l), generator=self.generator, device=self.device, dtype=self.dtype)
-        return torch.linalg.qr(A)[0].transpose_(1,2)
 

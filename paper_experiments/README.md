@@ -1,4 +1,136 @@
+# :test_tube: Experiments
+
+This directory contains the scripts for reproducing the experiments from the paper **"Langevin for Nonconvex Optimization: Exact, Inexact and Zeroth-Order."**
+
+The experiments are an ablation study of the zeroth-order Langevin algorithm on three (regularized) synthetic nonconvex benchmarks (Ackley, Levy, Rastrigin), varying the stepsize `gamma`, the exploration parameter `beta` and the number of directions `s`.
+
+## :file_folder: Contents
+
+| File | Description |
+|------|-------------|
+| `ablation.py` | Runs a single configuration of the zeroth-order Langevin algorithm and appends the result to a log file. |
+| `get_ablation_dataset.py` | Generates the list of configurations (grid) to run. |
+| `run_ablation.sh` | Runs the configurations in parallel by calling `ablation.py`. |
+| `plot_results.py` | Builds the figures from the logs. |
+| `synthetic_functions.py` | Target functions (`Ackley`, `Levy`, `Rastrigin`), imported by `ablation.py`. |
+
+`ablation.py` also imports the `szlan` package (`szlan.optimizer.szlan.SZLan` and the direction generators), which is expected to be located in the parent directory (`sys.path.append("../")`).
+
+## :package: Dependencies
+
+The scripts require `numpy`, `pandas`, `matplotlib`, `tqdm` and `torch` (this because the algorithm is implemented with pytorch). You can install them with pip using the `requirements.txt` file:
+
+```bash
+pip install -r requirements.txt
+```
+
+## :rocket: Run Ablation
+
+A single experiment is run with `ablation.py`:
+
+```bash
+python3 ablation.py <target function> --d <dimension> --gamma <stepsize> --beta <exploration parameter> \
+    --s <number of directions> --dir-type <type of directions> --device <cpu or cuda> --budget <budget>
+```
+
+Example:
+
+```bash
+python3 ablation.py ackley --d 10 --gamma 0.01 --beta 10.0 --s 5 --dir-type spherical --device cuda --budget 1000000
+```
+
+### :gear: Arguments
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `fun_name` (positional) | – | Target function: `rastrigin`, `ackley` or `levy`. |
+| `--d` | `10` | Dimension of the problem. |
+| `--gamma` | `0.01` | Stepsize. |
+| `--beta` | `1.0` | Exploration parameter. |
+| `--s` | `1` | Number of directions. |
+| `--dir-type` | `spherical` | Type of directions: `spherical` or `gaussian`. |
+| `--h` | `1e-5` | Smoothing parameter. |
+| `--budget` | `1000000` | Number of function evaluations. Each iteration uses `s + 1` evaluations, so the algorithm runs `budget // (s + 1)` iterations. |
+| `--reps` | `5` | Number of repetitions (different initial points). |
+| `--seed` | `5414` | Random seed. |
+| `--dtype` | `float64` | `float32` or `float64`. |
+| `--device` | `cuda` | `cpu` or `cuda`. |
+| `--out-dir` | `./` | Base directory where results are stored. |
+
+The experiments in the paper use `--dir-type spherical` and `--device cuda`, while `--budget`, `--h` (and the remaining options) are kept at the default values specified in the script. Add `-h` for further information i.e.
+
+```bash
+python3 ablation.py -h
+```
+
+### :floppy_disk: Output
+
+Each run appends one line to
 
 ```
-pip install nevergrad
+<out-dir>/zlan_results/ablation/<function>_<d>_<dir-type>_tested.log
 ```
+
+The file is locked while writing, so many processes can safely write to the same log in parallel. Each line is a CSV row with the following columns:
+
+| Column | Content |
+|--------|---------|
+| 0 | `gamma` |
+| 1 | `beta` |
+| 2 | `s` (number of directions) |
+| 3 | Best mean of the normalized function value over the whole run |
+| 4 | Standard deviation at that iteration |
+| 5 | Iteration index at which the best value was attained |
+| 6 | Best mean over the last 100 iterations |
+| 7 | Standard deviation at that iteration |
+| 8 | Iteration index of the best value in the last 100 iterations |
+
+Function values are normalized as `(F(x_k) - min F) / (F(x_0) - min F)` and averaged over the repetitions (mean and standard deviation over the `--reps` runs).
+
+If the algorithm diverges (NaN/Inf values, or a function value more than `1e10` times the initial one), the run is stopped and recorded as no improvement (mean `1.0`, standard deviation `0.0`).
+
+## :repeat: Reproducing the grid search
+
+The grid search is reproduced by running `ablation.py` in parallel over the stepsizes, exploration parameters and numbers of directions indicated in the manuscript.
+
+`get_ablation_dataset.py` builds a file where each line has the format
+
+```
+<function_name>,<dir_type>,<d>,<gamma>,<beta>,<s>
+```
+
+It takes the dimension and the direction type as parameters:
+
+```bash
+python3 get_ablation_dataset.py <dimension> <direction_type>
+```
+
+For example:
+
+```bash
+python3 get_ablation_dataset.py 10 spherical
+```
+
+This produces `zlan_dataset_10.csv`, covering:
+
+- functions: `rastrigin`, `ackley`, `levy`;
+- `gamma` in `{1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10}`;
+- `beta` in `{1e-2, 1e-1, 1, 1e1, 1e2, 1e3, 1e4}`;
+- `s` in `{1, d/5, d/3, d/2, 2d/3, 4d/5, d}` (rounded down).
+
+Then run `run_ablation.sh`, passing the file generated by `get_ablation_dataset.py`, the output directory and the maximum number of parallel processes. It executes `ablation.py` in parallel with `--device cuda`, budget `10^6`, 5 repetitions and the parameters indicated in each line of the file.
+
+The paper uses dimensions `d = 10, 50, 100`, so the dataset generation should be repeated for each of them.
+
+## :bar_chart: Plot results
+
+After all experiments have completed, use `plot_results.py` to obtain the figures. It takes as input the directory containing the results and whether to plot the ablation over `gamma` or over `beta`:
+
+```bash
+python3 plot_results.py <results_directory> <gamma/beta>
+```
+
+The results directory is the one containing the `*_tested.log` files, i.e. `<out-dir>/zlan_results/ablation`. The script reads the `spherical` logs for `d = 10, 50, 100` and the three functions, and for each number of directions `s` plots the best last-100-iterations normalized value as a function of `gamma` (or `beta`), with a band of one standard deviation. The figure is saved in the current directory as:
+
+- `change_l_gamma.pdf` when ablating over `gamma`;
+- `change_l_beta.pdf` when ablating over `beta`.

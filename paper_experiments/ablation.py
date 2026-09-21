@@ -7,17 +7,9 @@ import numpy as np
 import torch
 import tqdm
 
-sys.path.append("../../")
-from synthetic_functions import (
-    Ackley,
-    Griewank,
-    LeastSquares,
-    Levy,
-    Rastrigin,
-    Rosenbrock,
-)
+from synthetic_functions import Ackley, Levy, Rastrigin
 
-sys.path.append("../../../")
+sys.path.append("../")
 from szlan.direction_generators.direction_generators import (
     GaussianDirectionGenerator,
     SphericalDirectionGenerator,
@@ -32,7 +24,7 @@ DTYPES = {
 
 def get_args():
     parser = ap.ArgumentParser(description='Ablation study for Zeroth-order Langevin algorithm')
-    parser.add_argument("fun_name", default='least_squares', choices=['least_squares', 'rastrigin', 'rosenbrock', 'griewank', 'ackley', 'levy'], help='Target function')
+    parser.add_argument("fun_name", default='rastrigin', choices=['rastrigin', 'ackley', 'levy'], help='Target function')
     parser.add_argument("--d", default=10, type=int, help='Dimension')
 
     # Zeroth-order Langevin parameters
@@ -55,18 +47,12 @@ def get_args():
 
 
 def get_target(fun_name : str, d : int, seed : int, dtype : torch.dtype, device : str):
-    if fun_name == 'least_squares':
-        return LeastSquares(d = d, L =100.0, mu = 1.0, seed = seed, dtype = dtype, device = device)
-    elif fun_name == 'rosenbrock':
-        return Rosenbrock(d = d, dtype = dtype, device = device)
-    elif fun_name == 'ackley':
+    if fun_name == 'ackley':
         return Ackley(d = d, lam=1e-3, dtype = dtype, device = device)
     elif fun_name == 'rastrigin':
         return Rastrigin(d = d, lam=1e-3, dtype = dtype, device = device)
-    elif fun_name == 'griewank':
-        return Griewank(d = d, dtype = dtype, device = device)
     elif fun_name == 'levy':
-        return Levy(d = d, dtype = dtype, device = device)
+        return Levy(d = d, lam=1e-3, dtype = dtype, device = device)
         
     raise ValueError(f"Unrecognised function name {fun_name}!")
 
@@ -131,19 +117,10 @@ def main(args):
     
     base_out_dir = args.out_dir
     out_dir = f"{base_out_dir}/zlan_results/ablation"
-    os.makedirs(out_dir + "/traces", exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
 
     target_seed = 98 * base_seed + 901
     
-    if os.path.exists(f"{out_dir}/{fun_name}_{d}_{direction_type}_tested.log"):
-        with open(f"{out_dir}/{fun_name}_{d}_{direction_type}_tested.log", 'r') as f:
-            lines = f.readlines()
-        if len(lines) > 0:
-            for line in lines:
-                splitted = line.split(',')
-                if gamma == float(splitted[0]) and beta == float(splitted[1]) and s==int(splitted[2]):
-                    print("[--] This experiment has been already performed!")
-                    return
 
     target = get_target(fun_name, d, target_seed, dtype, device)
 
