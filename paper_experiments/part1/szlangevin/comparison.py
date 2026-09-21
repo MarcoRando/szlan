@@ -6,13 +6,7 @@ import numpy as np
 import torch
 
 sys.path.append("../../")
-from other_methods.cbo import CBO
-from other_methods.cmaes import CMAES
-from other_methods.de import DifferentialEvolution as DE
-from other_methods.emna import EMNA
-from other_methods.pso import PSO
-from other_methods.random_search import RS
-from other_methods.xnes import XNES
+
 from synthetic_functions import (
     Ackley,
     Griewank,
@@ -27,7 +21,14 @@ from szlan.direction_generators.direction_generators import (
     GaussianDirectionGenerator,
     SphericalDirectionGenerator,
 )
+from szlan.optimizer.cbo import CBO
+from szlan.optimizer.cmaes import CMAES
+from szlan.optimizer.de import DifferentialEvolution as DE
+from szlan.optimizer.emna import EMNA
+from szlan.optimizer.pso import PSO
+from szlan.optimizer.random_search import RS
 from szlan.optimizer.szlan import SZLan
+from szlan.optimizer.xnes import XNES
 
 DTYPES = {
     'float32' : torch.float32,

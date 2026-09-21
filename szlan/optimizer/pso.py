@@ -1,18 +1,13 @@
-import sys 
-
-
-from math import sqrt
 
 import torch
-sys.path.append("../../")
 
-from szlan.optimizer.szlan import Optimizer
+from szlan.optimizer.opt import Optimizer
 
 
 class PSO(Optimizer):
 
-    def __init__(self, population, inertia=0.729, c1=1.49445, c2=1.49445, seed = 131415, dtype=torch.float64, device='cpu'):
-        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
+    def __init__(self, population, inertia=0.729, c1=1.49445, c2=1.49445, seed = 1231415, dtype=torch.float64, device='cpu'):
+        super().__init__(device=device, dtype=dtype, seed = seed)
 
         self.population = population
         self.inertia = inertia
@@ -21,8 +16,6 @@ class PSO(Optimizer):
 
         self.n = self.population.shape[0]
         self.d = self.population.shape[1]
-
-        self.generator = torch.Generator(device).manual_seed(seed)
 
         self.V = torch.zeros_like(self.population)
 

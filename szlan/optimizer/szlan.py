@@ -23,12 +23,13 @@ class SZLan(Optimizer):
                  h : float | Callable[[int], float]  = 1e-7,
                  gamma : float | Callable[[int], float] = 0.1,
                  beta : float | Callable[[int], float] = 1.0,
-                 seed : int = 121314,
+                 seed : int = 1231415,
                  device : str = "cpu",
                  only_fd = False,
                  dtype : torch.dtype = torch.float64
                 ):
-        super().__init__(x0 = x0, device=device, dtype=dtype, seed=seed)
+        super().__init__(device=device, dtype=dtype, seed=seed)
+        self.x0 = x0
         self.direction_generator = direction_generator
         self.P = self.direction_generator()
 

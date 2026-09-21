@@ -1,22 +1,18 @@
-import sys
-from math import sqrt, log
+from math import log, sqrt
 
 import torch
-sys.path.append("../../")
 
-from szlan.optimizer.szlan import Optimizer
+from szlan.optimizer.opt import Optimizer
 
 
 class XNES(Optimizer):
 
-    def __init__(self, population, sigma, seed, dtype=torch.float64, device='cpu', eta_mu=1.0, eta_sigma=None, eta_B=None):
+    def __init__(self, population, sigma, seed = 1231415, dtype=torch.float64, device='cpu', eta_mu=1.0, eta_sigma=None, eta_B=None):
+        super().__init__(device=device, dtype=dtype, seed=seed)
+
         self.population = population
         self.n = self.population.shape[0]
         self.d = self.population.shape[1]
-
-        self.generator = torch.Generator(device).manual_seed(seed)
-        self.device = device
-        self.dtype = dtype
 
         self.mean = self.population.mean(dim=0).clone()
         self.sigma = torch.as_tensor(sigma, dtype=dtype, device=device)

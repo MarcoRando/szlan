@@ -1,12 +1,9 @@
-import sys
 from collections.abc import Callable
 from math import sqrt
 
 import torch
 
-sys.path.append("../../")
-
-from szlan.optimizer.szlan import Optimizer
+from szlan.optimizer.opt import Optimizer
 
 
 class Langevin(Optimizer):
@@ -19,10 +16,11 @@ class Langevin(Optimizer):
                  beta,
                  device : str = "cpu", 
                  dtype : torch.dtype = torch.float64, 
-                 seed : int = 123144):
+                 seed : int = 1231415):
         
-        super().__init__(x0=x0, device=device, dtype=dtype, seed=seed)
+        super().__init__(device=device, dtype=dtype, seed=seed)
         
+        self.x0 = x0
         self.grad = grad
         self.gamma = gamma if isinstance(gamma, Callable) else lambda _ : gamma
         self.beta = beta if isinstance(beta, Callable) else lambda _ : beta

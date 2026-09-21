@@ -1,17 +1,14 @@
-import sys 
-
-
 from math import sqrt
 
 import torch
-sys.path.append("../../")
 
-from szlan.optimizer.szlan import Optimizer
+from szlan.optimizer.opt import Optimizer
 
 
 class CBO(Optimizer):
 
-    def __init__(self, population, dt, lam, alpha, sigma, seed, dtype=torch.float64, device='cpu'):
+    def __init__(self, population, dt, lam, alpha, sigma, seed = 1231415, dtype=torch.float64, device='cpu'):
+        super().__init__(device=device, dtype=dtype, seed=seed)
         self.population = population
         self.dt = dt
         self.lam = lam
@@ -20,8 +17,6 @@ class CBO(Optimizer):
 
         self.n = self.population.shape[0]
         self.d = self.population.shape[1]
-
-        self.generator = torch.Generator(device).manual_seed(seed)
 
         self.current_cons_point = None
         
@@ -32,7 +27,7 @@ class CBO(Optimizer):
     
     def tell(self, X, y):
     
-        if X.shape[0] > self.n: #self.current_cons_point is not None and self.use_cons:
+        if X.shape[0] > self.n:
             y = y[:-1]
             X = X[:-1, :]
                 

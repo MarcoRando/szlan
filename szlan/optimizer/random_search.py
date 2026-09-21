@@ -1,25 +1,19 @@
-import sys 
-
-
-from math import sqrt
 
 import torch
-sys.path.append("../../")
 
-from szlan.optimizer.szlan import Optimizer
+from szlan.optimizer.opt import Optimizer
 
 
 class RS(Optimizer):
 
-    def __init__(self, population, sigma=1.0, seed = 131415, dtype=torch.float64, device='cpu'):
+    def __init__(self, population, sigma=1.0, seed = 1231415, dtype=torch.float64, device='cpu'):
 
-        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
+        super().__init__(device=device, dtype=dtype, seed = seed)
         self.population = population
         self.sigma = sigma
 
         self.n = self.population.shape[0]
         self.d = self.population.shape[1]
-        self.generator = torch.Generator(device).manual_seed(seed)
                 
     def ask(self):
         return self.population

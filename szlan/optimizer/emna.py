@@ -1,16 +1,13 @@
-import sys
 
 import torch
 
-sys.path.append("../../")
-
-from szlan.optimizer.szlan import Optimizer
+from szlan.optimizer.opt import Optimizer
 
 
 class EMNA(Optimizer):
 
-    def __init__(self, population, mu = 0.5, isotropic = True, min_sigma=1e-5, seed=123123, dtype=torch.float64, device='cpu'):
-        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
+    def __init__(self, population, mu = 0.5, isotropic = True, min_sigma=1e-5, seed=1231415, dtype=torch.float64, device='cpu'):
+        super().__init__(device=device, dtype=dtype, seed = seed)
         self.population = population
 
         self.isotropic = isotropic
@@ -21,7 +18,6 @@ class EMNA(Optimizer):
         self.min_sigma = min_sigma
         self.mu = max(1, int(mu * self.n))
 
-        self.generator = torch.Generator(device).manual_seed(seed)
         self.fX = torch.full((self.n,), float("inf"), device=self.device, dtype=self.dtype)
 
         

@@ -1,13 +1,9 @@
-import sys 
 
-
-from math import sqrt
+from enum import Enum
 
 import torch
-sys.path.append("../../")
 
-from szlan.optimizer.szlan import Optimizer
-from enum import Enum
+from szlan.optimizer.opt import Optimizer
 
 
 class DEPhase(Enum):
@@ -16,14 +12,12 @@ class DEPhase(Enum):
 
 
 class DifferentialEvolution(Optimizer):
-    def __init__(self, population, F=0.8, CR=0.9, seed = 131415, dtype = torch.float64, device = 'cpu'):
-        super().__init__(x0 = population[0], device=device, dtype=dtype, seed = seed)
+    def __init__(self, population, F=0.8, CR=0.9, seed = 1231415, dtype = torch.float64, device = 'cpu'):
+        super().__init__(device=device, dtype=dtype, seed = seed)
 
         self.population = population.detach().clone()
         self.n, self.d = population.shape
-        self.device = device
-        self.dtype = dtype
-        self.generator = torch.Generator(device).manual_seed(seed)
+
         self.F = F
         self.CR = CR
         self.phase = DEPhase.INITIALIZATION

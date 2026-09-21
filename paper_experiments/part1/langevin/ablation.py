@@ -1,19 +1,24 @@
+import argparse as ap
+import fcntl
 import os
 import sys
+
+import numpy as np
 import torch
-import numpy as np 
 import tqdm
-import argparse as ap 
-
-import fcntl
-
-
-sys.path.append("../")
-from synthetic_functions import LeastSquares, Ackley, Rosenbrock, Rastrigin, Griewank, Levy
 
 sys.path.append("../../")
-from szlan.optimizer.lan import Langevin
+from synthetic_functions import (
+    Ackley,
+    Griewank,
+    LeastSquares,
+    Levy,
+    Rastrigin,
+    Rosenbrock,
+)
 
+sys.path.append("../../../")
+from szlan.optimizer.lan import Langevin
 
 DTYPES = {
     'float32' : torch.float32,
