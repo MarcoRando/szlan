@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: "Langevin for Nonconvex Optimization: Exact, Inexact and Zeroth-Order"
+type: software
+
+authors:
+  - family-names: "Naldi"
+    given-names: "Emanuele"
+  - family-names: "Rando"
+    given-names: "Marco"
+  - family-names: "Rosasco"
+    given-names: "Lorenzo"
+  - family-names: "Villa"
+    given-names: "Silvia"
+
+date-released: 2026-07-24
+license: "MIT"
+
+repository-code: "https://github.com/MarcoRando/szlan"
+url: "https://arxiv.org/abs/2607.22353"
+doi: "10.48550/arXiv.2607.22353"
+
+abstract: >
+  Code used to reproduce the experiments from the paper
+  "Langevin for Nonconvex Optimization: Exact, Inexact and Zeroth-Order".
+
+keywords:
+  - Langevin optimization
+  - nonconvex optimization
+  - zeroth-order optimization
+  - stochastic optimization
