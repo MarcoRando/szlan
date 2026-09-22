@@ -38,7 +38,7 @@ For a correct PyTorch installation with CUDA support, install the PyTorch versio
 
 # :books: Citation
 
-If you use this code or the results of this work in your research, please cite our paper:
+If you use this code or the results of this work in your research, please cite the paper
 
 ```bibtex
 @misc{langevin_exact_inexact,
