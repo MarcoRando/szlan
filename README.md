@@ -2,7 +2,11 @@
 
 Code used to reproduce the experiments from the paper **"Langevin for Nonconvex Optimization: Exact, Inexact and Zeroth-Order."**
 
+A preprint of the paper is available on [ArXiv](https://arxiv.org/abs/2607.22353).
+
 The experiment scripts and their instructions are provided in the [`paper_experiments`](./paper_experiments/) folder.
+
+
 
 # :package: Installation
 
@@ -30,3 +34,20 @@ pip install torch
 ```
 
 For a correct PyTorch installation with CUDA support, install the PyTorch version appropriate for your CUDA version. Please refer to the [official PyTorch installation instructions](https://pytorch.org/get-started/locally/) for the appropriate command.
+
+
+# :books: Citation
+
+If you use this code or the results of this work in your research, please cite our paper:
+
+```bibtex
+@misc{langevin_exact_inexact,
+      title={Langevin for Nonconvex Optimization: Exact, Inexact and Zeroth-Order}, 
+      author={Emanuele Naldi and Marco Rando and Lorenzo Rosasco and Silvia Villa},
+      year={2026},
+      eprint={2607.22353},
+      archivePrefix={arXiv},
+      primaryClass={math.OC},
+      url={https://arxiv.org/abs/2607.22353}, 
+}
+```
