@@ -11,6 +11,9 @@ from szlan.optimizer.pso import PSO
 from szlan.optimizer.rs import RandomSearch
 from szlan.optimizer.szlan import SZLan
 
+STRUCTURED = 'structured'
+SPHERICAL = 'spherical'
+
 
 @dataclass
 class AlgoSpec:
@@ -23,18 +26,16 @@ def _add_szlan_args(parser, with_beta):
     parser.add_argument("--gamma", default=0.1, type=float, help='stepsize')
     if with_beta:
         parser.add_argument("--beta", default=10.0, type=float, help='exploration parameter for langevin')
-    parser.add_argument("--direction-type", default='structured', choices=list(GENERATORS.keys()),
-                        help="Direction type")
     parser.add_argument("--l", default=1, type=int, help='Number of directions')
     parser.add_argument("--s", default=1, type=int, help='Number of direction matrices')
     parser.add_argument("--h", default=1e-5, type=float, help='Discretization parameter')
 
 
-def _build_szlan(args, ctx, only_fd):
+def _build_szlan(args, ctx, only_fd, direction_type):
     base_seed, rep = ctx['base_seed'], ctx['rep']
     direction_seed = 132 * base_seed + 981 + rep
     optimizer_seed = 873 * base_seed + 564 + rep
-    direction_generator = GENERATORS[args.direction_type](
+    direction_generator = GENERATORS[direction_type](
         d=ctx['d'], l=args.l, s=args.s, seed=direction_seed, device=ctx['device'], dtype=ctx['dtype'])
     params = {
         'x0': ctx['x0'], 'gamma': args.gamma, 'h': args.h, 'only_fd': only_fd,
@@ -48,16 +49,13 @@ def _build_szlan(args, ctx, only_fd):
 
 def _add_rs_args(parser):
     parser.add_argument("--sigma", default=0.1, type=float, help='initial step size')
-    parser.add_argument("--sigma-decay", default=1.0, type=float, help='multiplicative decay of sigma per iteration')
     parser.add_argument("--batch-size", default=1, type=int, help='candidates evaluated per iteration')
-    parser.add_argument("--distribution", default='gaussian', choices=['gaussian', 'sphere'],
-                        help='distribution of the search directions')
 
 
 def _build_rs(args, ctx):
     optimizer_seed = 873 * ctx['base_seed'] + 564 + ctx['rep']
-    return RandomSearch(x0=ctx['x0'], sigma=args.sigma, sigma_decay=args.sigma_decay,
-                        batch_size=args.batch_size, distribution=args.distribution,
+    return RandomSearch(x0=ctx['x0'], sigma=args.sigma,
+                        batch_size=args.batch_size,
                         seed=optimizer_seed, device=ctx['device'], dtype=ctx['dtype'])
 
 
@@ -103,14 +101,22 @@ def _build_pso(args, ctx):
 
 
 ALGORITHMS = {
+    # finite differences only (no Langevin noise)
+    'szd': AlgoSpec(lambda p: _add_szlan_args(p, False),
+                    ['gamma', 'l', 's', 'h'],
+                    lambda a, c: _build_szlan(a, c, only_fd=True, direction_type=STRUCTURED)),
+    'zd': AlgoSpec(lambda p: _add_szlan_args(p, False),
+                   ['gamma', 'l', 's', 'h'],
+                   lambda a, c: _build_szlan(a, c, only_fd=True, direction_type=SPHERICAL)),
+    # finite differences + Langevin noise
+    'szlan': AlgoSpec(lambda p: _add_szlan_args(p, True),
+                      ['gamma', 'beta', 'l', 's', 'h'],
+                      lambda a, c: _build_szlan(a, c, only_fd=False, direction_type=STRUCTURED)),
     'zlan': AlgoSpec(lambda p: _add_szlan_args(p, True),
-                     ['gamma', 'beta', 'direction_type', 'l', 's', 'h'],
-                     lambda a, c: _build_szlan(a, c, only_fd=False)),
-    'ffd': AlgoSpec(lambda p: _add_szlan_args(p, False),
-                    ['gamma', 'direction_type', 'l', 's', 'h'],
-                    lambda a, c: _build_szlan(a, c, only_fd=True)),
+                     ['gamma', 'beta', 'l', 's', 'h'],
+                     lambda a, c: _build_szlan(a, c, only_fd=False, direction_type=SPHERICAL)),
     'rs': AlgoSpec(_add_rs_args,
-                   ['sigma', 'sigma_decay', 'batch_size', 'distribution'],
+                   ['sigma', 'batch_size'],
                    _build_rs),
     'cbo': AlgoSpec(_add_cbo_args,
                     ['n_particles', 'init_std', 'lam', 'sigma', 'alpha', 'dt', 'anisotropic', 'batch_size'],
