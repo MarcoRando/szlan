@@ -142,7 +142,7 @@ def main(args):
             best_f = min(best_f, values.min().item())
             hist.append((best_f - min_f) / (f_0 - min_f))
             evals.append(eval_performed)
-            print(f"[rep {rep + 1}/{reps}] [{eval_performed}/{budget}] best normalized value: {hist[-1]:.6e}")
+            print(f"[rep {rep + 1}/{reps}] [{eval_performed}/{budget}] best normalized value: {hist[-1]:.6e} local best: {values.min().item()}")
 
         histories.append(hist)
         eval_counts.append(evals)
