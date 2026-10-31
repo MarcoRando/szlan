@@ -113,7 +113,7 @@ def main(args):
     d, reps, budget, base_seed = args.d, args.reps, args.budget, args.base_seed
     dtype, device = DTYPES[args.dtype], args.device
     
-    lam_target = args.lam
+    lam_target = args.lam_target
 
     out_dir = os.path.join(args.out_dir, "synthetic", target_name)
     os.makedirs(out_dir, exist_ok=True)
