@@ -24,7 +24,7 @@ def get_arguments():
     common.add_argument("target", default='ackley', choices=list(TARGETS.keys()), help='Target function')
     common.add_argument("d", default=1, type=int, help="Dimension")
     common.add_argument("--reps", default=10, type=int, help='Number of repetitions')
-    common.add_argument("--lam-target", default=0.1, type=float, help='Regularization parameter of the target')
+    common.add_argument("--lam-target", default=1e-4, type=float, help='Regularization parameter of the target')
     common.add_argument("--budget", default=10000, type=int, help='Number of function evaluations')
     common.add_argument("--base-seed", default=1234, type=int, help='Base used to compute random seeds')
     common.add_argument("--dtype", default='float32', choices=list(DTYPES.keys()), help='Data type')

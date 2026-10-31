@@ -33,7 +33,7 @@ class SyntheticTarget:
 class Salomon(SyntheticTarget):
 #    BOUNDS = (-100.0, 100.0)
 
-    def __init__(self, d, lam=0.1, dtype=torch.float64, device='cuda', seed=1234):
+    def __init__(self, d, lam=1e-3, dtype=torch.float64, device='cuda', seed=1234):
         x_star = torch.zeros((1, d), dtype=dtype, device=device)
         bounds = torch.tensor([[-100.0, 100.0] for _ in range(d)], dtype=dtype, device=device)
         super().__init__("Salomon", x_star, bounds=bounds, lam=lam, seed=seed)
@@ -47,7 +47,7 @@ class Salomon(SyntheticTarget):
 class Alpine1(SyntheticTarget):
 #    BOUNDS = (-10.0, 10.0)
 
-    def __init__(self, d, lam=1.0, dtype=torch.float64, device='cuda', seed=1234):
+    def __init__(self, d, lam=1e-3, dtype=torch.float64, device='cuda', seed=1234):
         x_star = torch.zeros((1, d), dtype=dtype, device=device)
         bounds = torch.tensor([[-10.0, 10.0] for _ in range(d)], dtype=dtype, device=device)
         super().__init__("Alpine1", x_star, bounds=bounds, lam=lam, seed=seed)
@@ -60,7 +60,7 @@ class Alpine1(SyntheticTarget):
 class Ackley(SyntheticTarget):
 #    BOUNDS = (-32.768, 32.768)
 
-    def __init__(self, d, lam=0.1, dtype=torch.float64, device='cuda', seed=1234):
+    def __init__(self, d, lam=1e-3, dtype=torch.float64, device='cuda', seed=1234):
         x_star = torch.zeros((1, d), dtype=dtype, device=device)
         bounds = torch.tensor([[-32.768, 32.768] for _ in range(d)], dtype=dtype, device=device)
         super().__init__("Ackley", x_star, bounds=bounds, lam=lam, seed=seed)
@@ -78,7 +78,7 @@ class Ackley(SyntheticTarget):
 class Rastrigin(SyntheticTarget):
 #    BOUNDS = (-5.12, 5.12)
 
-    def __init__(self, d, lam=0.1, dtype=torch.float64, device='cuda', seed=1234):
+    def __init__(self, d, lam=1e-3, dtype=torch.float64, device='cuda', seed=1234):
         x_star = torch.zeros((1, d), dtype=dtype, device=device)
         bounds = torch.tensor([[-5.12, 5.12] for _ in range(d)], dtype=dtype, device=device)
         super().__init__("Rastrigin", x_star, bounds=bounds, lam=lam, seed=seed)
