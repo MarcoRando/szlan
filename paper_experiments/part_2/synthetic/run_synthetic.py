@@ -24,6 +24,7 @@ def get_arguments():
     common.add_argument("target", default='ackley', choices=list(TARGETS.keys()), help='Target function')
     common.add_argument("d", default=1, type=int, help="Dimension")
     common.add_argument("--reps", default=10, type=int, help='Number of repetitions')
+    common.add_argument("--lam-target", default=0.1, type=float, help='Regularization parameter of the target')
     common.add_argument("--budget", default=10000, type=int, help='Number of function evaluations')
     common.add_argument("--base-seed", default=1234, type=int, help='Base used to compute random seeds')
     common.add_argument("--dtype", default='float32', choices=list(DTYPES.keys()), help='Data type')
@@ -111,6 +112,8 @@ def main(args):
     algo_name, target_name = args.algorithm, args.target
     d, reps, budget, base_seed = args.d, args.reps, args.budget, args.base_seed
     dtype, device = DTYPES[args.dtype], args.device
+    
+    lam_target = args.lam
 
     out_dir = os.path.join(args.out_dir, "synthetic", target_name)
     os.makedirs(out_dir, exist_ok=True)
@@ -121,7 +124,7 @@ def main(args):
     for rep in range(reps):
         init_seed = 213 * base_seed + 154 + rep
 
-        target = TARGETS[target_name](d=d, dtype=dtype, device=device, seed=init_seed)
+        target = TARGETS[target_name](d=d, dtype=dtype, device=device, lam=lam_target, seed=init_seed)
         x0 = target.sample(1)
 
         ctx = {'x0': x0, 'd': d, 'rep': rep, 'base_seed': base_seed, 'device': device, 'dtype': dtype}
