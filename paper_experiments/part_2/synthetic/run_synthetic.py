@@ -5,6 +5,8 @@ import os
 import sys
 from datetime import datetime
 
+import time
+
 import numpy as np
 import torch
 from synthetic_targets import TARGETS
@@ -136,6 +138,7 @@ def main(args):
 
         best_f = f_0
         hist, evals = [1.0], [0]
+        opt_time = time.time()
         while eval_performed <= budget:
             points = opt.ask()
             values = target(points)
@@ -146,6 +149,9 @@ def main(args):
             hist.append((best_f - min_f) / (f_0 - min_f))
             evals.append(eval_performed)
             print(f"[rep {rep + 1}/{reps}] [{eval_performed}/{budget}] best normalized value: {hist[-1]:.6e} local best: {values.min().item()}")
+        opt_time = time.time() - opt_time
+
+        print(f"[--] Optimization time: {opt_time}")
 
         histories.append(hist)
         eval_counts.append(evals)
