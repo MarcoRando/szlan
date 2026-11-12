@@ -1,6 +1,6 @@
 import torch
 
-from synthetic_targets import Alpine1, Ackley, Rastrigin
+from synthetic_targets import Alpine1, Ackley, Rastrigin, AckleyL1, TakagiL1, ZigzagL1, YangN2
 
 import matplotlib.pyplot as plt
 
@@ -10,9 +10,9 @@ n = 1000
 
 
 device='cpu'
-target_1 = Alpine1(d=d, device=device)
-target_2 = Ackley(d=d, device=device)
-target_3 = Rastrigin(d = d, device = device)
+target_1 = TakagiL1(d=d, device=device)
+target_2 = YangN2(d=d, device=device)
+target_3 = ZigzagL1(d = d, device = device)
 
 
 X = torch.linspace(-10, 10, n).view(n, d)

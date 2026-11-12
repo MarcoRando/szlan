@@ -18,7 +18,7 @@ from algo_utils import add_algorithm_subparsers, build_algorithm, get_algorithm_
 DTYPES = {'float32': torch.float32, 'float64': torch.float64}
 
 STAT_FIELDS = ['mean', 'median', 'std', 'sem', 'ci95_halfwidth', 'min', 'max', 'p05', 'p95']
-COMMON_PARAMS = ['algorithm', 'target', 'd', 'budget', 'reps', 'base_seed', 'dtype']
+COMMON_PARAMS = ['algorithm', 'target', 'd', 'budget', 'reps', 'base_seed', 'dtype', 'last_iters']
 
 
 def get_arguments():
@@ -32,6 +32,8 @@ def get_arguments():
     common.add_argument("--dtype", default='float32', choices=list(DTYPES.keys()), help='Data type')
     common.add_argument("--device", default='cuda', choices=['cpu', 'cuda'], help='Device')
     common.add_argument("--out-dir", default="./results", type=str, help="Output directory")
+    common.add_argument("--last-iters", default=500, type=int,
+                        help='Score of a repetition = mean of the per-iteration best value over the last N iterations')
 
     parser = ap.ArgumentParser(description="Synthetic Experiments Runner")
     add_algorithm_subparsers(parser, parents=[common])
@@ -63,17 +65,32 @@ def read_summary(path):
         return list(reader.fieldnames or []), list(reader)
 
 
-def read_best_mean(rows, d, budget):
-    """Lowest stored average among runs with same dimension and budget."""
+def read_best_mean(rows, d, budget, last_iters):
+    """Lowest stored windowed mean among runs with same dimension, budget and window.
+    Rows from older versions (no last_iters column) are ignored."""
     best = float('inf')
     for row in rows:
         try:
-            if int(row['d']) != d or int(row['budget']) != budget:
+            if (int(row['d']) != d or int(row['budget']) != budget
+                    or int(row['last_iters']) != last_iters):
                 continue
             best = min(best, float(row['mean']))
         except (KeyError, ValueError, TypeError):
             continue
     return best
+
+
+def _norm(v):
+    # csv writes None as '' and everything else via str(), so normalise the same way
+    return '' if v is None else str(v)
+
+
+def config_already_tested(rows, params):
+    """True if a stored row matches every parameter of the current configuration."""
+    for row in rows:
+        if all(_norm(v) == _norm(row.get(k)) for k, v in params.items()):
+            return True
+    return False
 
 
 def append_summary(path, row, fieldnames_old, rows_old):
@@ -97,15 +114,24 @@ def append_summary(path, row, fieldnames_old, rows_old):
         writer.writerow(row)
 
 
-def write_trace(path, params, evals, histories):
-    st = compute_stats(histories, axis=0)
+def write_trace(path, params, evals, local_histories, best_histories):
+    """Trace of the best configuration.
+    local_*   : statistics over reps of the per-iteration best value (the quantity scored on the last window)
+    running_* : statistics over reps of the running best (monotone, for reference)
+    """
+    st_local = compute_stats(local_histories, axis=0)
+    st_best = compute_stats(best_histories, axis=0)
     tmp = path + ".tmp"
     with open(tmp, 'w', newline='') as fout:
         fout.write("# params: " + json.dumps(params) + "\n")
         writer = csv.writer(fout)
-        writer.writerow(['iteration', 'evaluations'] + STAT_FIELDS)
-        for i in range(histories.shape[1]):
-            writer.writerow([i, int(evals[i])] + [repr(float(st[k][i])) for k in STAT_FIELDS])
+        writer.writerow(['iteration', 'evaluations']
+                        + [f'local_{k}' for k in STAT_FIELDS]
+                        + [f'running_{k}' for k in STAT_FIELDS])
+        for i in range(local_histories.shape[1]):
+            writer.writerow([i, int(evals[i])]
+                            + [repr(float(st_local[k][i])) for k in STAT_FIELDS]
+                            + [repr(float(st_best[k][i])) for k in STAT_FIELDS])
     os.replace(tmp, path)  # replaces the trace of the previous best configuration
 
 
@@ -114,15 +140,28 @@ def main(args):
     algo_name, target_name = args.algorithm, args.target
     d, reps, budget, base_seed = args.d, args.reps, args.budget, args.base_seed
     dtype, device = DTYPES[args.dtype], args.device
-    
+    last_iters = args.last_iters
+
     lam_target = args.lam_target
 
     out_dir = os.path.join(args.out_dir, "synthetic", target_name)
     os.makedirs(out_dir, exist_ok=True)
     summary_path = os.path.join(out_dir, f"{algo_name}_summary.csv")
-    trace_path = os.path.join(out_dir, f"{algo_name}_d{d}_b{budget}_best_trace.csv")
+    trace_path = os.path.join(out_dir, f"{algo_name}_d{d}_b{budget}_l{last_iters}_best_trace.csv")
 
-    histories, eval_counts = [], []
+    # ---- build the configuration and skip it if it was already tested ----
+    params = {'algorithm': algo_name, 'target': target_name, 'd': d, 'budget': budget,
+              'reps': reps, 'base_seed': base_seed, 'dtype': args.dtype,
+              'last_iters': last_iters}
+    params.update(get_algorithm_params(args))
+
+    fields_old, rows_old = read_summary(summary_path)
+    if config_already_tested(rows_old, params):
+        print(f"Configuration already tested in {summary_path}; skipping.")
+        print(json.dumps(params))
+        return
+
+    best_histories, local_histories, eval_counts, rep_scores = [], [], [], []
     for rep in range(reps):
         init_seed = 213 * base_seed + 154 + rep
 
@@ -135,9 +174,10 @@ def main(args):
         eval_performed = 0
         f_0 = target(x0).item()
         min_f = target(target.x_star).item()
+        denom = f_0 - min_f
 
         best_f = f_0
-        hist, evals = [1.0], [0]
+        best_hist, local_hist, evals = [1.0], [1.0], [0]   # index 0 = starting point
         opt_time = time.time()
         while eval_performed <= budget:
             points = opt.ask()
@@ -145,42 +185,50 @@ def main(args):
             opt.tell(points, values)
             eval_performed += points.shape[0]
 
-            best_f = min(best_f, values.min().item())
-            hist.append((best_f - min_f) / (f_0 - min_f))
+            local_best = values.min().item()      # best of this iteration only (no running min)
+            best_f = min(best_f, local_best)
+            best_hist.append((best_f - min_f) / denom)
+            local_hist.append((local_best - min_f) / denom)
             evals.append(eval_performed)
-            print(f"[rep {rep + 1}/{reps}] [{eval_performed}/{budget}] best normalized value: {hist[-1]:.6e} local best: {values.min().item()}")
+            print(f"[rep {rep + 1}/{reps}] [{eval_performed}/{budget}] "
+                  f"running best normalized: {best_hist[-1]:.6e} "
+                  f"local normalized: {local_hist[-1]:.6e} local best: {local_best}")
         opt_time = time.time() - opt_time
 
         print(f"[--] Optimization time: {opt_time}")
 
-        histories.append(hist)
+        # score of this repetition: mean of the per-iteration best over the last `last_iters` iterations
+        iters = local_hist[1:]                    # drop the starting point
+        window = min(last_iters, len(iters))
+        rep_scores.append(float(np.mean(iters[-window:])))
+
+        best_histories.append(best_hist)
+        local_histories.append(local_hist)
         eval_counts.append(evals)
 
-    n_it = min(len(h) for h in histories)
-    histories = np.array([h[:n_it] for h in histories], dtype=np.float64)
+    n_it = min(len(h) for h in best_histories)
+    best_histories = np.array([h[:n_it] for h in best_histories], dtype=np.float64)
+    local_histories = np.array([h[:n_it] for h in local_histories], dtype=np.float64)
     evals = np.array(eval_counts[0][:n_it])
 
-    st = compute_stats(histories[:, -1], axis=0)
+    # statistics over repetitions of the windowed score
+    st = compute_stats(np.array(rep_scores, dtype=np.float64), axis=0)
 
-    params = {'algorithm': algo_name, 'target': target_name, 'd': d, 'budget': budget,
-              'reps': reps, 'base_seed': base_seed, 'dtype': args.dtype}
-    params.update(get_algorithm_params(args))
-
-    fields_old, rows_old = read_summary(summary_path)
-    best_prev = read_best_mean(rows_old, d, budget)
+    best_prev = read_best_mean(rows_old, d, budget, last_iters)
     is_best = float(st['mean']) < best_prev
 
     row = {'timestamp': datetime.now().isoformat(timespec='seconds'), **params}
     row.update({k: repr(float(st[k])) for k in STAT_FIELDS})
     append_summary(summary_path, row, fields_old, rows_old)
 
-    print("\nFinal normalized value over {} reps: mean={:.6e} median={:.6e} std={:.6e} "
+    print("\nWindowed score (last {} iters) over {} reps: mean={:.6e} median={:.6e} std={:.6e} "
           "min={:.6e} max={:.6e} p05={:.6e} p95={:.6e}".format(
-              reps, st['mean'], st['median'], st['std'], st['min'], st['max'], st['p05'], st['p95']))
+              last_iters, reps, st['mean'], st['median'], st['std'], st['min'], st['max'],
+              st['p05'], st['p95']))
     print(f"Summary appended to {summary_path}")
 
     if is_best:
-        write_trace(trace_path, params, evals, histories)
+        write_trace(trace_path, params, evals, local_histories, best_histories)
         print(f"New best average (previous: {best_prev:.6e}) -> trace written to {trace_path}")
     else:
         print(f"Average not better than best stored ({best_prev:.6e}); trace not updated")

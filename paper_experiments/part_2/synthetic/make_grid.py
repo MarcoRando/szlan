@@ -2,6 +2,8 @@ import argparse as ap
 import itertools
 import os
 
+import numpy as np
+
 ALGOS = ['szd', 'zd', 'szlan', 'zlan', 'rs', 'cbo', 'pso']
 
 # Fractions of the dimension d
@@ -10,9 +12,9 @@ B_FRACS = (0.1, 0.3, 0.5, 0.7, 1.0)       # random-search batch size
 P_FRACS = (0.1, 0.3, 0.5, 0.7, 1.0)      # swarm size (CBO / PSO)
 MIN_PARTICLES = 10
 
-GAMMAS = (1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0)
+GAMMAS = np.logspace(-5, 0, 20) #(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0)
 HS = [1e-5]
-BETAS = (0.1, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 500.0)
+BETAS = np.logspace(-1, 3, 20) #(0.1, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 500.0)
 
 
 def counts(d, fracs, minimum=1):
@@ -64,7 +66,7 @@ def main():
     p.add_argument("target")
     p.add_argument("d", type=int)
     p.add_argument("--reps", default=10, type=int)
-    p.add_argument("--budget", default=1000000, type=int)
+    p.add_argument("--budget", default=100000, type=int)
     p.add_argument("--base-seed", default=1234, type=int)
     p.add_argument("--dtype", default='float32', choices=['float32', 'float64'])
     p.add_argument("--device", default='cpu', choices=['cpu', 'cuda'])
