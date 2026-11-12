@@ -12,7 +12,7 @@ B_FRACS = (0.1, 0.3, 0.5, 0.7, 1.0)       # random-search batch size
 P_FRACS = (0.1, 0.3, 0.5, 0.7, 1.0)      # swarm size (CBO / PSO)
 MIN_PARTICLES = 10
 
-GAMMAS = np.logspace(-5, 0, 20) #(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0)
+GAMMAS = np.logspace(-5, 1, 20) #(1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0)
 HS = [1e-5]
 BETAS = np.logspace(-3, 3, 20) #(0.1, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 500.0)
 
