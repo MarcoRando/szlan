@@ -66,8 +66,6 @@ def read_summary(path):
 
 
 def read_best_mean(rows, d, budget, last_iters):
-    """Lowest stored windowed mean among runs with same dimension, budget and window.
-    Rows from older versions (no last_iters column) are ignored."""
     best = float('inf')
     for row in rows:
         try:
@@ -81,12 +79,10 @@ def read_best_mean(rows, d, budget, last_iters):
 
 
 def _norm(v):
-    # csv writes None as '' and everything else via str(), so normalise the same way
     return '' if v is None else str(v)
 
 
 def config_already_tested(rows, params):
-    """True if a stored row matches every parameter of the current configuration."""
     for row in rows:
         if all(_norm(v) == _norm(row.get(k)) for k, v in params.items()):
             return True
@@ -115,10 +111,6 @@ def append_summary(path, row, fieldnames_old, rows_old):
 
 
 def write_trace(path, params, evals, local_histories, best_histories):
-    """Trace of the best configuration.
-    local_*   : statistics over reps of the per-iteration best value (the quantity scored on the last window)
-    running_* : statistics over reps of the running best (monotone, for reference)
-    """
     st_local = compute_stats(local_histories, axis=0)
     st_best = compute_stats(best_histories, axis=0)
     tmp = path + ".tmp"
@@ -132,10 +124,9 @@ def write_trace(path, params, evals, local_histories, best_histories):
             writer.writerow([i, int(evals[i])]
                             + [repr(float(st_local[k][i])) for k in STAT_FIELDS]
                             + [repr(float(st_best[k][i])) for k in STAT_FIELDS])
-    os.replace(tmp, path)  # replaces the trace of the previous best configuration
+    os.replace(tmp, path)
 
 
-# ---------------------------------------------------------------------------
 def main(args):
     algo_name, target_name = args.algorithm, args.target
     d, reps, budget, base_seed = args.d, args.reps, args.budget, args.base_seed
@@ -149,7 +140,6 @@ def main(args):
     summary_path = os.path.join(out_dir, f"{algo_name}_summary.csv")
     trace_path = os.path.join(out_dir, f"{algo_name}_d{d}_b{budget}_l{last_iters}_best_trace.csv")
 
-    # ---- build the configuration and skip it if it was already tested ----
     params = {'algorithm': algo_name, 'target': target_name, 'd': d, 'budget': budget,
               'reps': reps, 'base_seed': base_seed, 'dtype': args.dtype,
               'last_iters': last_iters}
@@ -197,7 +187,6 @@ def main(args):
 
         print(f"[--] Optimization time: {opt_time}")
 
-        # score of this repetition: mean of the per-iteration best over the last `last_iters` iterations
         iters = local_hist[1:]                    # drop the starting point
         window = min(last_iters, len(iters))
         rep_scores.append(float(np.mean(iters[-window:])))
@@ -211,7 +200,6 @@ def main(args):
     local_histories = np.array([h[:n_it] for h in local_histories], dtype=np.float64)
     evals = np.array(eval_counts[0][:n_it])
 
-    # statistics over repetitions of the windowed score
     st = compute_stats(np.array(rep_scores, dtype=np.float64), axis=0)
 
     best_prev = read_best_mean(rows_old, d, budget, last_iters)
