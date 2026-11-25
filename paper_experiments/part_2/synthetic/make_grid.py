@@ -11,7 +11,7 @@ MIN_PARTICLES = 10
 
 GAMMAS = np.logspace(-5, 1, 20)
 HS = [1e-5]
-BETAS = np.logspace(-3, 3, 20)
+BETAS = [0.001, 0.01, 0.1, 1.0, 10.0, 25.0, 50.0, 100.0] #np.logspace(-3, 3, 20)
 
 
 def counts(d, fracs, minimum=1):

@@ -8,18 +8,13 @@ from szlan.optimizer.opt import Optimizer
 from szlan.utils.utils import _ffd_accumulate
 
 
-class SZLanPhase(Enum):
-    INITIALIZATION = 0
-    ITERATE = 1
-    GRADIENT_APPROX = 2
-
 
 class SZLan(Optimizer):
 
     def __init__(self,
                  x0: torch.Tensor,
                  direction_generator,
-                 h: float | Callable[[int], float] = 1e-7,
+                 h: float | Callable[[int], float] = 1e-5,
                  gamma: float | Callable[[int], float] = 0.1,
                  beta: float | Callable[[int], float] = 1.0,
                  batch_size: int | None = None,
