@@ -10,6 +10,9 @@ from szlan.optimizer.cbo import CBO
 from szlan.optimizer.pso import PSO
 from szlan.optimizer.rs import RandomSearch
 from szlan.optimizer.szlan import SZLan
+from szlan.optimizer.one_plus_lam import OnePlusLamES
+from szlan.optimizer.de import DifferentialEvolution
+
 
 STRUCTURED = 'structured'
 SPHERICAL = 'spherical'
@@ -20,6 +23,41 @@ class AlgoSpec:
     add_args: Callable[[ap.ArgumentParser], None]
     params: list
     build: Callable
+
+
+
+def _add_es_args(parser):
+    parser.add_argument("--sigma", default=0.1, type=float, help='initial mutation step size')
+    parser.add_argument("--inc", default=1.5, type=float, help='step-size increase factor on success (decrease is inc^(-1/4))')
+    parser.add_argument("--batch-size", default=1, type=int, help='offspring per iteration (1 = classic (1+1)-ES)')
+
+
+def _build_es(args, ctx):
+    optimizer_seed = 873 * ctx['base_seed'] + 564 + ctx['rep']
+    return OnePlusLamES(x0=ctx['x0'], sigma=args.sigma, inc=args.inc,
+                        batch_size=args.batch_size,
+                        seed=optimizer_seed, device=ctx['device'], dtype=ctx['dtype'])
+
+
+
+def _add_de_args(parser):
+    parser.add_argument("--n-particles", default=50, type=int, help='Population size')
+    parser.add_argument("--init-std", default=1.0, type=float, help='Std of the initial population around x0')
+    parser.add_argument("--F", default=0.8, type=float, help='Differential weight')
+    parser.add_argument("--CR", default=0.9, type=float, help='Crossover probability')
+    parser.add_argument("--strategy", default='rand1', choices=['rand1', 'best1'], help='Mutation strategy')
+    parser.add_argument("--batch-size", default=None, type=int,
+                        help='Candidates evaluated per ask (default: whole population)')
+
+
+def _build_de(args, ctx):
+    optimizer_seed = 873 * ctx['base_seed'] + 564 + ctx['rep']
+    return DifferentialEvolution(x0=ctx['x0'], n_particles=args.n_particles, init_std=args.init_std,
+                                 F=args.F, CR=args.CR, strategy=args.strategy,
+                                 batch_size=args.batch_size,
+                                 seed=optimizer_seed, device=ctx['device'], dtype=ctx['dtype'])
+
+
 
 
 def _add_szlan_args(parser, with_beta):
@@ -101,29 +139,16 @@ def _build_pso(args, ctx):
 
 
 ALGORITHMS = {
-    # finite differences only (no Langevin noise)
-    'szd': AlgoSpec(lambda p: _add_szlan_args(p, False),
-                    ['gamma', 'l', 's', 'h'],
-                    lambda a, c: _build_szlan(a, c, only_fd=True, direction_type=STRUCTURED)),
-    'zd': AlgoSpec(lambda p: _add_szlan_args(p, False),
-                   ['gamma', 'l', 's', 'h'],
-                   lambda a, c: _build_szlan(a, c, only_fd=True, direction_type=SPHERICAL)),
-    # finite differences + Langevin noise
-    'szlan': AlgoSpec(lambda p: _add_szlan_args(p, True),
-                      ['gamma', 'beta', 'l', 's', 'h'],
-                      lambda a, c: _build_szlan(a, c, only_fd=False, direction_type=STRUCTURED)),
-    'zlan': AlgoSpec(lambda p: _add_szlan_args(p, True),
-                     ['gamma', 'beta', 'l', 's', 'h'],
-                     lambda a, c: _build_szlan(a, c, only_fd=False, direction_type=SPHERICAL)),
-    'rs': AlgoSpec(_add_rs_args,
-                   ['sigma', 'batch_size'],
-                   _build_rs),
-    'cbo': AlgoSpec(_add_cbo_args,
-                    ['n_particles', 'init_std', 'lam', 'sigma', 'alpha', 'dt', 'anisotropic', 'batch_size'],
-                    _build_cbo),
-    'pso': AlgoSpec(_add_pso_args,
-                    ['n_particles', 'init_std', 'v_init_std', 'w', 'c1', 'c2', 'v_max', 'batch_size'],
-                    _build_pso),
+
+    'szd': AlgoSpec(lambda p: _add_szlan_args(p, False), ['gamma', 'l', 's', 'h'], lambda a, c: _build_szlan(a, c, only_fd=True, direction_type=STRUCTURED)),
+    'zd': AlgoSpec(lambda p: _add_szlan_args(p, False), ['gamma', 'l', 's', 'h'], lambda a, c: _build_szlan(a, c, only_fd=True, direction_type=SPHERICAL)),
+    'szlan': AlgoSpec(lambda p: _add_szlan_args(p, True), ['gamma', 'beta', 'l', 's', 'h'], lambda a, c: _build_szlan(a, c, only_fd=False, direction_type=STRUCTURED)),
+    'zlan': AlgoSpec(lambda p: _add_szlan_args(p, True), ['gamma', 'beta', 'l', 's', 'h'], lambda a, c: _build_szlan(a, c, only_fd=False, direction_type=SPHERICAL)),
+    'rs': AlgoSpec(_add_rs_args, ['sigma', 'batch_size'], _build_rs),
+    'cbo': AlgoSpec(_add_cbo_args, ['n_particles', 'init_std', 'lam', 'sigma', 'alpha', 'dt', 'anisotropic', 'batch_size'], _build_cbo),
+    'pso': AlgoSpec(_add_pso_args, ['n_particles', 'init_std', 'v_init_std', 'w', 'c1', 'c2', 'v_max', 'batch_size'], _build_pso),
+    'one_plus_lam': AlgoSpec(_add_es_args, ['sigma', 'inc', 'batch_size'], _build_es),
+    'de': AlgoSpec(_add_de_args, ['n_particles', 'init_std', 'F', 'CR', 'strategy', 'batch_size'], _build_de),
 }
 
 
